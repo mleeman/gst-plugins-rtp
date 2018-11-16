@@ -1,0 +1,26 @@
+Source: gst-plugins-rtp
+Section: libs
+Priority: optional
+Maintainer: Marc Leeman <marc.leeman@gmail.com>
+Build-Depends: debhelper (>= 10),
+               libgstreamer1.0-dev,
+               pkg-config (>= 0.26),
+               meson
+Standards-Version: 3.9.8
+
+Package: gstreamer1.0-plugins-rtp
+Architecture: any
+Depends: gstreamer1.0-plugins-base,
+         gstreamer1.0-plugins-good,
+         ${misc:Depends},
+         ${shlibs:Depends}
+Description: GStreamer elements from the "rtp" set
+ GStreamer is a streaming media framework, based on graphs of filters
+ which operate on media data.  Applications using this library can do
+ anything from real-time sound processing to playing videos, and just
+ about anything else media-related.  Its plugin-based architecture means
+ that new data types or processing capabilities can be added simply by
+ installing new plug-ins.
+ .
+ GStreamer RTP plugins provide elements that handle RTP streaming to
+ and from the network and provide bindings to the rtp:// URI interface.
