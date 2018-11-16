@@ -87,5 +87,6 @@ gstnet_dep = dependency('gstreamer-net-1.0', version : gst_req,
 gstcontroller_dep = dependency('gstreamer-controller-1.0', version : gst_req,
   fallback : ['gstreamer', 'gst_controller_dep'])
 
+configure_file(output : 'config.h', configuration : cdata)
 
 subdir('gst')
