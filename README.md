@@ -11,7 +11,8 @@ can be decoded with decodebin using the rtp:// interface.
 
 The code can be used as follows
 
+```
 gst-launch-1.0 videotestsrc ! x264enc ! rtph264pay config-interval=3 ! rtpsink uri=rtp://239.1.1.1:1234
 gst-play-1.0 rtp://239.1.1.1:1234
-
+```
 
