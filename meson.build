@@ -15,13 +15,18 @@ else
   gst_version_nano = 0
 endif
 
+gst_version_is_dev = gst_version_minor % 2 == 1 and gst_version_micro < 90
+glib_req = '>= 2.40.0'
+gst_req = '>= @0@.@1@.0'.format(gst_version_major, gst_version_minor)
+
 cc = meson.get_compiler('c')
+cdata = configuration_data()
 
 check_headers = [
 ] 
 foreach h : check_headers   
   if cc.has_header(h.get(1))     
-    core_conf.set(h.get(0), 1)   
+    cdata.set(h.get(0), 1)   
   endif 
 endforeach
 
@@ -52,9 +57,6 @@ foreach extra_arg : warning_flags
   if cc.has_argument (extra_arg)
     add_project_arguments([extra_arg], language: 'c')
   endif
-  if have_cxx and cxx.has_argument (extra_arg)
-    add_project_arguments([extra_arg], language: 'cpp')
-  endif
 endforeach
 
 foreach extra_arg : warning_c_flags
@@ -74,8 +76,8 @@ if gst_package_name == ''
     gst_package_name = 'GStreamer Base Plug-ins prerelease'
   endif
 endif
-core_conf.set_quoted('GST_PACKAGE_NAME', gst_package_name)
-core_conf.set_quoted('GST_PACKAGE_ORIGIN', get_option('package-origin'))
+cdata.set_quoted('GST_PACKAGE_NAME', gst_package_name)
+cdata.set_quoted('GST_PACKAGE_ORIGIN', get_option('package-origin'))
 
 # Mandatory GST deps
 gst_dep = dependency('gstreamer-1.0', version : gst_req,
