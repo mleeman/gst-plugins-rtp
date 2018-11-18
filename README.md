@@ -1,5 +1,8 @@
 # gst-plugins-rtp
 
+NOTE: a clean reference implementation should be up soon: I started to
+rewrite to make the implementation as clean as possible.
+
 This is a re-implementation of the RTP elements that are submitted in
 2013 to handle RTP streams. The elements handle a correct connection
 for the bi-directional use of the RTCP sockets.
