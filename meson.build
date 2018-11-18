@@ -78,6 +78,11 @@ if gst_package_name == ''
 endif
 cdata.set_quoted('GST_PACKAGE_NAME', gst_package_name)
 cdata.set_quoted('GST_PACKAGE_ORIGIN', get_option('package-origin'))
+cdata.set('VERSION', '"@0@"'.format(gst_version))
+cdata.set('PACKAGE_VERSION', '"@0@"'.format(gst_version))
+cdata.set('GST_LICENSE', '"LGPL"')
+cdata.set('PACKAGE', '"gst-plugins-rtp"')
+cdata.set('GETTEXT_PACKAGE', '"gst-plugins-rtp-1.0"')
 
 gst_plugins_rtp_args = ['-DHAVE_CONFIG_H']
 configinc = include_directories('.')
