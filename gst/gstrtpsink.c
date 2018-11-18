@@ -2,6 +2,10 @@
 #include <config.h>
 #endif
 
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <gio/gio.h>
+
 #include "gstrtpsink.h"
 #include "gst_object_set_properties_from_uri_query.h"
 
@@ -128,14 +132,14 @@ gst_rtp_sink_request_new_pad (GstElement *element,
 {
   GstRtpSink *self = GST_RTP_SINK (element);
   GstPad *pad = NULL;
-  gchar *name = g_strdup_printf ("send_rtp_sink_%u", self->npads);
+  gchar *nname = g_strdup_printf ("send_rtp_sink_%u", self->npads);
 
   g_return_val_if_fail (self->rtpbin != NULL, NULL);
   
   GST_RTP_SINK_LOCK (self);
-  pad = gst_element_get_request_pad (self->rtpbin, name);
+  pad = gst_element_get_request_pad (self->rtpbin, nname);
   g_return_val_if_fail (pad != NULL, NULL);
-  g_free(name);
+  g_free(nname);
 
   self->npads++;
   GST_RTP_SINK_UNLOCK (self);
@@ -169,7 +173,7 @@ gst_rtp_sink_class_init (GstRtpSinkClass *klass)
   gobject_class->set_property = gst_rtp_sink_set_property;
   gobject_class->get_property = gst_rtp_sink_get_property;
   gobject_class->finalize = gst_rtp_sink_finalize;
-  element_class->change_state = gst_rtp_sink_change_state;
+  gstelement_class->change_state = gst_rtp_sink_change_state;
 
   gstelement_class->request_new_pad = GST_DEBUG_FUNCPTR (gst_rtp_sink_request_new_pad);
   gstelement_class->release_pad = GST_DEBUG_FUNCPTR (gst_rtp_sink_release_pad);
@@ -203,10 +207,10 @@ gst_rtp_sink_rtpbin_pad_added_cb (GstElement *element, GstPad *pad, gpointer dat
   GstRtpSink *self = GST_RTP_SINK (data);
   GstPad *upad;
 
-  GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " added pad %" GST_PTR_format ".", element, pad);
+  GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " added pad %" GST_PTR_FORMAT ".", element, pad);
 
   /* TODO: funnel? */
-  gst_element_get_compatible_pad (self->udpsink_rtp, pad, NULL);
+  upad = gst_element_get_compatible_pad (self->udpsink_rtp, pad, NULL);
   gst_pad_link (pad, upad);
   gst_object_unref (upad);
 }
@@ -215,7 +219,7 @@ static void
 gst_rtp_sink_rtpbin_pad_removed_cb (GstElement *element, GstPad *pad, gpointer data)
 {
   GstRtpSink *self = GST_RTP_SINK (data);
-  GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " removed pad %" GST_PTR_format ".", element, pad);
+  GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " removed pad %" GST_PTR_FORMAT ".", element, pad);
 }
 
 static gboolean
@@ -237,7 +241,7 @@ gst_rtp_sink_is_multicast (const gchar * ip_addr)
 static void
 gst_rtp_sink_setup_elements(GstRtpSink *self)
 {
-  GstPad *pad;
+  /*GstPad *pad;*/
   GSocket *socket;
   gchar* name;
   GstCaps *caps;
@@ -280,7 +284,7 @@ gst_rtp_sink_setup_elements(GstRtpSink *self)
 
   g_object_set(self->udpsink_rtp, 
       "host", gst_uri_get_host(self->uri),
-      "port", gst_uri_get_portt(self->uri),
+      "port", gst_uri_get_port(self->uri),
       "ttl", self->ttl,
       "ttl-mc", self->ttl_mc,
       NULL);
@@ -337,7 +341,7 @@ gst_rtp_sink_setup_elements(GstRtpSink *self)
 static GstStateChangeReturn
 gst_rtp_sink_change_state (GstElement *element, GstStateChange transition)
 {
-  GstRtpSink *self = GST_RTP_SINK (object);
+  GstRtpSink *self = GST_RTP_SINK (element);
   GstStateChangeReturn ret = GST_STATE_CHANGE_SUCCESS;
 
   GST_DEBUG ("changing state: %s => %s",
@@ -376,8 +380,8 @@ gst_rtp_sink_init (GstRtpSink *self)
 {
   self->rtpbin = NULL;
   self->udpsink_rtp = NULL;
-  self->udpsrc_rctp = NULL;
-  self_rtpsink_rtcp = NULL;
+  self->udpsrc_rtcp = NULL;
+  self->udpsink_rtcp = NULL;
 
   self->uri = gst_uri_from_string (DEFAULT_PROP_URI);
   self->npads = 0u;

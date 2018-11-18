@@ -2,11 +2,16 @@
 #include <config.h>
 #endif
 
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <gio/gio.h>
+
 #include "gstrtpsrc.h"
 #include "gst_object_set_properties_from_uri_query.h"
 
 GST_DEBUG_CATEGORY_STATIC (rtp_src_debug);
 #define GST_CAT_DEFAULT rtp_src_debug
+#define DEFAULT_PROP_TTL              64
 #define DEFAULT_PROP_TTL_MC           1
 
 #define DEFAULT_PROP_URI              "rtp://0.0.0.0:5004"
@@ -17,6 +22,7 @@ struct _GstRtpSrc
 
   /* Properties */
   GstUri *uri;
+  gint ttl;
   gint ttl_mc;
   gint latency;
 
@@ -37,6 +43,7 @@ enum
   PROP_0,
 
   PROP_URI,
+  PROP_TTL,
   PROP_TTL_MC,
 
   PROP_LAST
@@ -49,11 +56,18 @@ G_DEFINE_TYPE_WITH_CODE (GstRtpSrc, gst_rtp_src, GST_TYPE_BIN,
     G_IMPLEMENT_INTERFACE (GST_TYPE_URI_HANDLER,
         gst_rtp_src_uri_handler_init));
 
+#define GST_RTP_SRC_GET_LOCK(obj) (&((GstRtpSrc*)(obj))->lock)
+#define GST_RTP_SRC_LOCK(obj) (g_mutex_lock (GST_RTP_SRC_GET_LOCK(obj)))
+#define GST_RTP_SRC_UNLOCK(obj) (g_mutex_unlock (GST_RTP_SRC_GET_LOCK(obj)))
+
 static GstStaticPadTemplate src_template = GST_STATIC_PAD_TEMPLATE ("src_%u",
     GST_PAD_SRC,
     GST_PAD_SOMETIMES,
     GST_STATIC_CAPS ("application/x-rtp"));
 
+static GstStateChangeReturn
+gst_rtp_src_change_state (GstElement *element, GstStateChange transition);
+  
 static void
 gst_rtp_src_set_property (GObject * object, guint prop_id,
     const GValue * value, GParamSpec * pspec)
@@ -65,6 +79,9 @@ gst_rtp_src_set_property (GObject * object, guint prop_id,
       if (self->uri) gst_uri_unref (self->uri);
       self->uri = gst_uri_from_string (g_value_get_string (value));
       gst_object_set_properties_from_uri_query (G_OBJECT (self), self->uri);
+      break;
+    case PROP_TTL:
+      self->ttl = g_value_get_int (value);
       break;
     case PROP_TTL_MC:
       self->ttl_mc = g_value_get_int (value);
@@ -88,6 +105,9 @@ gst_rtp_src_get_property (GObject * object, guint prop_id,
       else
         g_value_set_string (value, NULL);
       break;
+    case PROP_TTL:
+      g_value_set_int (value, self->ttl);
+      break;
     case PROP_TTL_MC:
       g_value_set_int (value, self->ttl_mc);
       break;
@@ -110,16 +130,21 @@ gst_rtp_src_finalize (GObject * gobject)
 static void
 gst_rtp_src_class_init (GstRtpSrcClass * klass)
 {
-  GObjectClass *oclass = G_OBJECT_CLASS (klass);
+  GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   GstElementClass *gstelement_class = GST_ELEMENT_CLASS (klass);
 
-  oclass->set_property = gst_rtp_src_set_property;
-  oclass->get_property = gst_rtp_src_get_property;
-  oclass->finalize = gst_rtp_src_finalize;
+  gobject_class->set_property = gst_rtp_src_set_property;
+  gobject_class->get_property = gst_rtp_src_get_property;
+  gobject_class->finalize = gst_rtp_src_finalize;
+  gstelement_class->change_state = gst_rtp_src_change_state;
 
-  g_object_class_install_property (oclass, PROP_URI,
+  g_object_class_install_property (gobject_class, PROP_URI,
       g_param_spec_string ("uri", "URI", "URI to send data on",
           DEFAULT_PROP_URI, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (gobject_class, PROP_TTL,
+      g_param_spec_int ("ttl", "Unicast TTL",
+          "Used for setting the unicast TTL parameter",
+          0, 255, DEFAULT_PROP_TTL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_TTL_MC,
       g_param_spec_int ("ttl-mc", "Multicast TTL",
           "Used for setting the multicast TTL parameter",
@@ -143,7 +168,7 @@ gst_rtp_src_rtpbin_pad_added_cb (GstElement *element, GstPad *pad, gpointer data
   GstPad *upad;
   gchar *name;
 
-  GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " added pad %" GST_PTR_format ".", element, pad);
+  GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " added pad %" GST_PTR_FORMAT ".", element, pad);
 
   GST_RTP_SRC_LOCK (self);
   name = g_strdup_printf("src_%u", self->npads++);
@@ -170,10 +195,17 @@ gst_rtp_src_is_multicast (const gchar * ip_addr)
     return FALSE;
 }
 
+  static void
+gst_rtp_src_rtpbin_pad_removed_cb (GstElement *element, GstPad *pad, gpointer data)
+{
+  GstRtpSrc *self = GST_RTP_SRC (data);
+  GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " removed pad %" GST_PTR_FORMAT ".", element, pad);
+}
+
 static void
 gst_rtp_src_setup_elements(GstRtpSrc *self)
 {
-  GstPad *pad;
+  /*GstPad *pad;*/
   GSocket *socket;
   gchar* name;
   GstCaps *caps;
@@ -182,7 +214,7 @@ gst_rtp_src_setup_elements(GstRtpSrc *self)
   g_return_if_fail (self->uri != NULL);
 
   self->rtpbin = gst_element_factory_make("rtpbin", NULL);
-  self->udpsink_rtp = gst_element_factory_make("udpsink", NULL);
+  self->udpsrc_rtp = gst_element_factory_make("udpsrc", NULL);
   self->udpsrc_rtcp = gst_element_factory_make("udpsrc", NULL);
   self->udpsink_rtcp = gst_element_factory_make("udpsink", NULL);
 
@@ -190,9 +222,9 @@ gst_rtp_src_setup_elements(GstRtpSrc *self)
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
         ("%s", "rtpbin element is not available"));
 
-  if (self->udpsink_rtp == NULL)
+  if (self->udpsrc_rtp == NULL)
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
-        ("%s", "udpsink_rtp element is not available"));
+        ("%s", "udpsrc_rtp element is not available"));
 
   if (self->udpsrc_rtcp == NULL)
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
@@ -212,11 +244,11 @@ gst_rtp_src_setup_elements(GstRtpSrc *self)
   /* Add elements as needed, since udpsrc/udpsink for RTCP share a socket,
    * not all at the same moment */
   gst_bin_add (GST_BIN (self), self->rtpbin);
-  gst_bin_add (GST_BIN (self), self->udpsink_rtp);
+  gst_bin_add (GST_BIN (self), self->udpsrc_rtp);
 
-  g_object_set(self->udpsink_rtp, 
-      "host", gst_uri_get_host(self->uri),
-      "port", gst_uri_get_portt(self->uri),
+  g_object_set(self->udpsrc_rtp, 
+      "address", gst_uri_get_host(self->uri),
+      "port", gst_uri_get_port(self->uri),
       "ttl", self->ttl,
       "ttl-mc", self->ttl_mc,
       NULL);
@@ -255,7 +287,7 @@ gst_rtp_src_setup_elements(GstRtpSrc *self)
   g_free(name);
 
   gst_element_sync_state_with_parent (self->rtpbin);
-  gst_element_sync_state_with_parent (self->udpsink_rtp);
+  gst_element_sync_state_with_parent (self->udpsrc_rtp);
   gst_element_sync_state_with_parent (self->udpsink_rtcp);
 
   gst_bin_add (GST_BIN (self), self->udpsrc_rtcp);
@@ -270,17 +302,10 @@ gst_rtp_src_setup_elements(GstRtpSrc *self)
   gst_element_sync_state_with_parent (self->udpsrc_rtcp);
 }
 
-  static void
-gst_rtp_src_rtpbin_pad_removed_cb (GstElement *element, GstPad *pad, gpointer data)
-{
-  GstRtpSrc *self = GST_RTP_SRC (data);
-  GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " removed pad %" GST_PTR_format ".", element, pad);
-}
-
 static GstStateChangeReturn
 gst_rtp_src_change_state (GstElement *element, GstStateChange transition)
 {
-  GstRtpSrc *self = GST_RTP_SRC (object);
+  GstRtpSrc *self = GST_RTP_SRC (element);
   GstStateChangeReturn ret = GST_STATE_CHANGE_SUCCESS;
 
   GST_DEBUG ("changing state: %s => %s",
@@ -317,15 +342,16 @@ static void
 gst_rtp_src_init (GstRtpSrc * self)
 {
   self->rtpbin = NULL;
-  self->udprc_rtp = NULL;
-  self->udpsrc_rctp = NULL;
-  self_rtpsink_rtcp = NULL;
+  self->udpsrc_rtp = NULL;
+  self->udpsrc_rtcp = NULL;
+  self->udpsink_rtcp = NULL;
 
   self->uri = gst_uri_from_string (DEFAULT_PROP_URI);
   self->npads = 0u;
+  self->ttl = DEFAULT_PROP_TTL;
   self->ttl_mc = DEFAULT_PROP_TTL_MC;
 
-  GST_OBJECT_FLAG_SET (GST_OBJECT (self), GST_ELEMENT_FLAG_SRC);
+  GST_OBJECT_FLAG_SET (GST_OBJECT (self), GST_ELEMENT_FLAG_SOURCE);
 }
 
 static guint
