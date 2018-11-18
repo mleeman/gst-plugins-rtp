@@ -351,7 +351,6 @@ gst_rtp_sink_change_state (GstElement *element, GstStateChange transition)
     default:
       break;
   }
-}
 
   ret = GST_ELEMENT_CLASS (parent_class)->change_state (element, transition);
   if (ret == GST_STATE_CHANGE_FAILURE)
