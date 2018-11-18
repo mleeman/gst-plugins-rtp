@@ -16,6 +16,9 @@ struct _GstRtpSink
   /* Properties */
   GstUri *uri;
 
+  /* Internal elements */
+  GstElement *rtpbin
+
   GMutex lock;
 };
 
@@ -34,6 +37,11 @@ static void gst_rtp_sink_uri_handler_init (gpointer g_iface, gpointer iface_data
 G_DEFINE_TYPE_WITH_CODE (GstRtpSink, gst_rtp_sink, GST_TYPE_BIN,
     G_IMPLEMENT_INTERFACE (GST_TYPE_URI_HANDLER,
         gst_rtp_sink_uri_handler_init));
+
+static GstStaticPadTemplate sink_template = GST_STATIC_PAD_TEMPLATE ("sink_%u",
+    GST_PAD_SINK,
+    GST_PAD_REQUEST,
+    GST_STATIC_CAPS ("application/x-rtp"));
 
 static void
 gst_rtp_sink_set_property (GObject * object, guint prop_id,
@@ -81,6 +89,21 @@ gst_rtp_sink_finalize (GObject * gobject)
   G_OBJECT_CLASS (parent_class)->finalize (gobject);
 }
 
+static GstPad *
+gst_rtp_sink_request_new_pad (GstElement * element,
+    GstPadTemplate * templ, const gchar * name, const GstCaps * caps)
+{
+  GstRtpSink *self = GST_RTP_SINK (element);
+
+  return NULL;
+}
+
+static void
+gst_rtp_sink_release_pad (GstElement * element, GstPad * pad)
+{
+  GstRtpSink *self = GST_RTP_SINK (element);
+}
+  
 static void
 gst_rtp_sink_class_init (GstRtpSinkClass * klass)
 {
@@ -90,6 +113,9 @@ gst_rtp_sink_class_init (GstRtpSinkClass * klass)
   oclass->set_property = gst_rtp_sink_set_property;
   oclass->get_property = gst_rtp_sink_get_property;
   oclass->finalize = gst_rtp_sink_finalize;
+
+  gstelement_class->request_new_pad = GST_DEBUG_FUNCPTR (gst_rtp_sink_request_new_pad);
+  gstelement_class->release_pad = GST_DEBUG_FUNCPTR (gst_rtp_sink_release_pad);
 
   g_object_class_install_property (oclass, PROP_URI,
       g_param_spec_string ("uri", "URI", "URI to send data on",
