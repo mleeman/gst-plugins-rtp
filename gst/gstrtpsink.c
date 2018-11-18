@@ -127,9 +127,15 @@ static void
 gst_rtp_sink_release_pad (GstElement *element, GstPad *pad)
 {
   GstRtpSink *self = GST_RTP_SINK (element);
+  GstPad *rpad = gst_ghost_pad_get_target(GST_GHOST_PAD(pad));
 
   GST_RTP_SINK_LOCK (self);
-  gst_element_release_request_pad (self->rtpbin, pad);
+  gst_element_release_request_pad (self->rtpbin, rpad);
+  gst_object_unref(rpad);
+
+  gst_pad_set_active (pad, FALSE);
+  gst_element_remove_pad (GST_ELEMENT (self), pad);
+
   self->npads--;
   GST_RTP_SINK_UNLOCK (self);
 }
@@ -154,6 +160,34 @@ gst_rtp_sink_class_init (GstRtpSinkClass *klass)
 
   GST_DEBUG_CATEGORY_INIT (rtp_sink_debug,
       "rtpsink", 0, "GStreamer RTP sink");
+}
+
+static void
+gst_rtp_sink_rtpbin_element_added_cb (GstBin *element, GstElement *new_element, gpointer data)
+{
+  GstRtpSink *self = GST_RTP_SINK (data);
+  GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " added element %" GST_PTR_FORMAT ".", element, new_element);
+}
+
+static void
+gst_rtp_sink_rtpbin_pad_added_cb (GstElement *element, GstPad *pad, gpointer data)
+{
+  GstRtpSink *self = GST_RTP_SINK (data);
+  GstPad *upad;
+
+  GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " added pad %" GST_PTR_format ".", element, pad);
+
+  /* TODO: funnel? */
+  gst_element_get_compatible_pad (self->udpsink_rtp, pad, NULL);
+  gst_pad_link (pad, upad);
+  gst_object_unref (upad);
+}
+
+static void
+gst_rtp_sink_rtpbin_pad_removed_cb (GstElement *element, GstPad *pad, gpointer data)
+{
+  GstRtpSink *self = GST_RTP_SINK (data);
+  GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " removed pad %" GST_PTR_format ".", element, pad);
 }
 
 static void
@@ -187,6 +221,13 @@ gst_rtp_sink_setup_elements(GstRtpSink *self)
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
         ("%s", "udpsink_rtcp element is not available"));
 
+  /* Add rtpbin callbacks to monitor the operation of rtpbin */
+  g_signal_connect (self->rtpbin, "element-added",
+      G_CALLBACK (gst_rtp_sink_rtpbin_element_added_cb), self);
+  g_signal_connect (self->rtpbin, "pad-added",
+      G_CALLBACK (gst_rtp_sink_rtpbin_pad_added_cb), self);
+  g_signal_connect (self->rtpbin, "pad-removed",
+      G_CALLBACK (gst_rtp_sink_rtpbin_pad_removed_cb), self);
   /* Add elements as needed, since udpsrc/udpsink for RTCP share a socket,
    * not all at the same moment */
   gst_bin_add (GST_BIN (self), self->rtpbin);
@@ -216,7 +257,7 @@ gst_rtp_sink_setup_elements(GstRtpSink *self)
   gst_element_sync_state_with_parent (self->rtpbin);
   gst_element_sync_state_with_parent (self->udpsink_rtp);
   gst_element_sync_state_with_parent (self->udpsink_rtcp);
-  
+
   gst_bin_add (GST_BIN (self), self->udpsrc_rtcp);
 
   g_object_get (G_OBJECT (self->udpsrc_rtcp), "used-socket", &socket, NULL);
