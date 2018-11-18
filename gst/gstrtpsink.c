@@ -8,6 +8,8 @@ GST_DEBUG_CATEGORY_STATIC (rtp_sink_debug);
 #define GST_CAT_DEFAULT rtp_sink_debug
 
 #define DEFAULT_PROP_URI              "rtp://0.0.0.0:5004"
+#define DEFAULT_PROP_TTL              64
+#define DEFAULT_PROP_TTL_MC           1
 
 struct _GstRtpSink
 {
@@ -15,6 +17,8 @@ struct _GstRtpSink
 
   /* Properties */
   GstUri *uri;
+  gint ttl;
+  gint ttl_mc;
 
   /* Internal elements */
   GstElement *rtpbin;
@@ -33,6 +37,8 @@ enum
   PROP_0,
 
   PROP_URI,
+  PROP_TTL,
+  PROP_TTL_MC,
 
   PROP_LAST
 };
@@ -67,7 +73,13 @@ gst_rtp_sink_set_property (GObject * object, guint prop_id,
       if (self->uri) gst_uri_unref (self->uri);
       self->uri = gst_uri_from_string (g_value_get_string (value));
       break;
-        default:
+    case PROP_TTL:
+      self->ttl = g_value_get_int (value);
+      break;
+    case PROP_TTL_MC:
+      self->ttl_mc = g_value_get_int (value);
+      break;
+    default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
@@ -85,6 +97,12 @@ gst_rtp_sink_get_property (GObject * object, guint prop_id,
         g_value_take_string (value, gst_uri_to_string (self->uri));
       else
         g_value_set_string (value, NULL);
+      break;
+    case PROP_TTL:
+      g_value_set_int (value, self->ttl);
+      break;
+    case PROP_TTL_MC:
+      g_value_set_int (value, self->ttl_mc);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -143,20 +161,28 @@ gst_rtp_sink_release_pad (GstElement *element, GstPad *pad)
 static void
 gst_rtp_sink_class_init (GstRtpSinkClass *klass)
 {
-  GObjectClass *oclass = G_OBJECT_CLASS (klass);
+  GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   GstElementClass *gstelement_class = GST_ELEMENT_CLASS (klass);
 
-  oclass->set_property = gst_rtp_sink_set_property;
-  oclass->get_property = gst_rtp_sink_get_property;
-  oclass->finalize = gst_rtp_sink_finalize;
+  gobject_class->set_property = gst_rtp_sink_set_property;
+  gobject_class->get_property = gst_rtp_sink_get_property;
+  gobject_class->finalize = gst_rtp_sink_finalize;
   element_class->change_state = gst_rtp_sink_change_state;
 
   gstelement_class->request_new_pad = GST_DEBUG_FUNCPTR (gst_rtp_sink_request_new_pad);
   gstelement_class->release_pad = GST_DEBUG_FUNCPTR (gst_rtp_sink_release_pad);
 
-  g_object_class_install_property (oclass, PROP_URI,
+  g_object_class_install_property (gobject_class, PROP_URI,
       g_param_spec_string ("uri", "URI", "URI to send data on",
           DEFAULT_PROP_URI, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (gobject_class, PROP_TTL,
+      g_param_spec_int ("ttl", "Unicast TTL",
+          "Used for setting the unicast TTL parameter",
+          0, 255, DEFAULT_PROP_TTL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (gobject_class, PROP_TTL_MC,
+      g_param_spec_int ("ttl-mc", "Multicast TTL",
+          "Used for setting the multicast TTL parameter",
+          0, 255, DEFAULT_PROP_TTL_MC, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   GST_DEBUG_CATEGORY_INIT (rtp_sink_debug,
       "rtpsink", 0, "GStreamer RTP sink");
@@ -190,12 +216,29 @@ gst_rtp_sink_rtpbin_pad_removed_cb (GstElement *element, GstPad *pad, gpointer d
   GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " removed pad %" GST_PTR_format ".", element, pad);
 }
 
+static gboolean
+gst_rtp_sink_is_multicast (const gchar * ip_addr)
+{
+  in_addr_t host;
+  struct in6_addr host6;
+
+  /* IPv4 and IPv6 test */
+  if ((inet_pton (AF_INET6, ip_addr, &host6) == 1 &&
+          IN6_IS_ADDR_MULTICAST (host6.__in6_u.__u6_addr8)) ||
+      (inet_pton (AF_INET, ip_addr, &host) == 1 &&
+          (host = ntohl (host)) && IN_MULTICAST (host)))
+    return TRUE;
+  else
+    return FALSE;
+}
+
 static void
 gst_rtp_sink_setup_elements(GstRtpSink *self)
 {
   GstPad *pad;
   GSocket *socket;
   gchar* name;
+  GstCaps *caps;
 
   /* Should not be NULL */
   g_return_if_fail (self->uri != NULL);
@@ -236,13 +279,32 @@ gst_rtp_sink_setup_elements(GstRtpSink *self)
   g_object_set(self->udpsink_rtp, 
       "host", gst_uri_get_host(self->uri),
       "port", gst_uri_get_portt(self->uri),
+      "ttl", self->ttl,
+      "ttl-mc", self->ttl_mc,
       NULL);
 
   gst_bin_add (GST_BIN (self), self->udpsink_rtcp);
 
+  /* no need to set address if unicast */
+  caps = gst_caps_from_string ("application/x-rtcp");
+  g_object_set(self->udpsrc_rtcp, 
+      "port", gst_uri_get_port(self->uri) + 1,
+      "auto-multicast", TRUE,
+      "caps", caps,
+      NULL);
+  gst_caps_unref(caps);
+  if (gst_rtp_sink_is_multicast (gst_uri_get_host(self->uri))) {
+    g_object_set(self->udpsrc_rtcp, 
+        "address", gst_uri_get_host(self->uri),
+        NULL);
+  }
+
   g_object_set(self->udpsink_rtcp, 
       "host", gst_uri_get_host(self->uri),
-      "port", gst_uri_get_portt(self->uri),
+      "port", gst_uri_get_port(self->uri) + 1,
+      "ttl", self->ttl,
+      "ttl-mc", self->ttl_mc,
+      "auto-multicast", FALSE, /* Set false since we're reusing a socket */
       NULL);
 
   /* pads are all named */
@@ -311,14 +373,15 @@ gst_rtp_sink_change_state (GstElement *element, GstStateChange transition)
 static void
 gst_rtp_sink_init (GstRtpSink *self)
 {
-  self->uri = gst_uri_from_string (DEFAULT_PROP_URI);
-
   self->rtpbin = NULL;
   self->udpsink_rtp = NULL;
   self->udpsrc_rctp = NULL;
   self_rtpsink_rtcp = NULL;
 
+  self->uri = gst_uri_from_string (DEFAULT_PROP_URI);
   self->npads = 0u;
+  self->ttl = DEFAULT_PROP_TTL;
+  self->ttl_mc = DEFAULT_PROP_TTL_MC;
 
   GST_OBJECT_FLAG_SET (GST_OBJECT (self), GST_ELEMENT_FLAG_SINK);
 }
