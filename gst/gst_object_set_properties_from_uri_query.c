@@ -25,8 +25,11 @@ void
 gst_object_set_properties_from_uri_query(GObject * obj,
     const GstUri * uri)
 {
-  GHashTable *hash_table = gst_uri_get_query_table (uri);
+  GHashTable *hash_table;
   GList *keys = NULL, *key;
+
+  g_return_if_fail (uri != NULL);
+  hash_table = gst_uri_get_query_table (uri);
 
   if (hash_table) {
     keys = g_hash_table_get_keys (hash_table);
