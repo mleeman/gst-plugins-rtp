@@ -1,5 +1,5 @@
 project('gst-plugins-rtp', 'c', 
-  version : '1.15.0.1',
+  version : '1.14.0.1',
   meson_version : '>= 0.46.0',
   default_options : [ 'warning_level=1',
                       'buildtype=debugoptimized' ])
@@ -78,6 +78,10 @@ if gst_package_name == ''
 endif
 cdata.set_quoted('GST_PACKAGE_NAME', gst_package_name)
 cdata.set_quoted('GST_PACKAGE_ORIGIN', get_option('package-origin'))
+
+gst_plugins_rtp_args = ['-DHAVE_CONFIG_H']
+configinc = include_directories('.')
+plugins_install_dir = '@0@/gstreamer-1.0'.format(get_option('libdir'))
 
 # Mandatory GST deps
 gst_dep = dependency('gstreamer-1.0', version : gst_req,
