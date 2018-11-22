@@ -1,8 +1,5 @@
 # gst-plugins-rtp
 
-NOTE: a clean reference implementation should be up soon: I started to
-rewrite to make the implementation as clean as possible.
-
 This is a re-implementation of the RTP elements that are submitted in
 2013 to handle RTP streams. The elements handle a correct connection
 for the bi-directional use of the RTCP sockets.
@@ -19,3 +16,4 @@ gst-launch-1.0 videotestsrc ! x264enc ! rtph264pay config-interval=3 ! rtpsink u
 gst-play-1.0 rtp://239.1.1.1:1234
 ```
 
+Status: works for H.264
