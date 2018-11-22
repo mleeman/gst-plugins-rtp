@@ -48,7 +48,7 @@ enum
   PROP_LAST
 };
 
-static void gst_rtp_sink_uri_handler_init (gpointer g_iface, gpointer iface_data); 
+static void gst_rtp_sink_uri_handler_init (gpointer g_iface, gpointer iface_data);
 
 #define gst_rtp_sink_parent_class parent_class
 G_DEFINE_TYPE_WITH_CODE (GstRtpSink, gst_rtp_sink, GST_TYPE_BIN,
@@ -163,7 +163,7 @@ gst_rtp_sink_release_pad (GstElement *element, GstPad *pad)
   self->npads--;
   GST_RTP_SINK_UNLOCK (self);
 }
-  
+
 static void
 gst_rtp_sink_class_init (GstRtpSinkClass *klass)
 {
