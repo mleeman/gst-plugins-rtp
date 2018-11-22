@@ -22,8 +22,7 @@ _gst_uri_query_to_boolean (const gchar * value)
 }
 
 void
-gst_object_set_properties_from_uri_query(GObject * obj,
-    const GstUri * uri)
+gst_object_set_properties_from_uri_query (GObject * obj, const GstUri * uri)
 {
   GHashTable *hash_table;
   GList *keys = NULL, *key;
@@ -115,4 +114,3 @@ gst_object_set_properties_from_uri_query(GObject * obj,
     g_hash_table_unref (hash_table);
   }
 }
-
