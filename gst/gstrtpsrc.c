@@ -35,7 +35,7 @@ struct _GstRtpSrc
 
   /* Internal properties */
   guint npads;
-  
+
   GMutex lock;
 };
 
@@ -50,7 +50,7 @@ enum
   PROP_LAST
 };
 
-static void gst_rtp_src_uri_handler_init (gpointer g_iface, gpointer iface_data); 
+static void gst_rtp_src_uri_handler_init (gpointer g_iface, gpointer iface_data);
 
 #define gst_rtp_src_parent_class parent_class
 G_DEFINE_TYPE_WITH_CODE (GstRtpSrc, gst_rtp_src, GST_TYPE_BIN,
@@ -68,7 +68,7 @@ static GstStaticPadTemplate src_template = GST_STATIC_PAD_TEMPLATE ("src_%u",
 
 static GstStateChangeReturn
 gst_rtp_src_change_state (GstElement *element, GstStateChange transition);
-  
+
 static void
 gst_rtp_src_set_property (GObject * object, guint prop_id,
     const GValue * value, GParamSpec * pspec)
@@ -299,7 +299,7 @@ gst_rtp_src_setup_elements(GstRtpSrc *self)
   gst_bin_add (GST_BIN (self), self->rtpbin);
   gst_bin_add (GST_BIN (self), self->udpsrc_rtp);
 
-  g_object_set(self->udpsrc_rtp, 
+  g_object_set(self->udpsrc_rtp,
       "address", gst_uri_get_host(self->uri),
       "port", gst_uri_get_port(self->uri),
       "ttl", self->ttl,
@@ -310,19 +310,19 @@ gst_rtp_src_setup_elements(GstRtpSrc *self)
 
   /* no need to set address if unicast */
   caps = gst_caps_from_string ("application/x-rtcp");
-  g_object_set(self->udpsrc_rtcp, 
+  g_object_set(self->udpsrc_rtcp,
       "port", gst_uri_get_port(self->uri) + 1,
       "auto-multicast", TRUE,
       "caps", caps,
       NULL);
   gst_caps_unref(caps);
   if (gst_rtp_src_is_multicast (gst_uri_get_host(self->uri))) {
-    g_object_set(self->udpsrc_rtcp, 
+    g_object_set(self->udpsrc_rtcp,
         "address", gst_uri_get_host(self->uri),
         NULL);
   }
 
-  g_object_set(self->udpsink_rtcp, 
+  g_object_set(self->udpsink_rtcp,
       "host", gst_uri_get_host(self->uri),
       "port", gst_uri_get_port(self->uri) + 1,
       "ttl", self->ttl,
