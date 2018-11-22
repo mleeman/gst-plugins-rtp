@@ -334,6 +334,15 @@ gst_rtp_src_setup_elements(GstRtpSrc *self)
       G_CALLBACK (gst_rtp_src_rtpbin_pad_added_cb), self);
   g_signal_connect (self->rtpbin, "pad-removed",
       G_CALLBACK (gst_rtp_src_rtpbin_pad_removed_cb), self);
+  g_signal_connect (self->rtpbin, "request-pt-map",
+      G_CALLBACK (gst_rtp_src_rtpbin_request_pt_map_cb), self);
+#if 0
+  g_signal_connect (self->rtpbin, "on-new-ssrc",
+      G_CALLBACK (gst_rtp_src_rtpbin_on_new_ssrc_cb), self);
+  g_signal_connect (self->rtpbin, "on-ssrc-collision",
+      G_CALLBACK (gst_rtp_src_rtpbin_on_ssrc_collision_cb), self);
+#endif
+
   /* Add elements as needed, since udpsrc/udpsink for RTCP share a socket,
    * not all at the same moment */
   gst_bin_add (GST_BIN (self), self->rtpbin);
