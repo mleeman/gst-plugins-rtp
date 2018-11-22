@@ -141,18 +141,27 @@ gst_rtp_src_class_init (GstRtpSrcClass * klass)
 
   g_object_class_install_property (gobject_class, PROP_URI,
       g_param_spec_string ("uri", "URI", "URI to send data on",
-          DEFAULT_PROP_URI, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+        DEFAULT_PROP_URI, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_TTL,
       g_param_spec_int ("ttl", "Unicast TTL",
-          "Used for setting the unicast TTL parameter",
-          0, 255, DEFAULT_PROP_TTL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+        "Used for setting the unicast TTL parameter",
+        0, 255, DEFAULT_PROP_TTL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_TTL_MC,
       g_param_spec_int ("ttl-mc", "Multicast TTL",
-          "Used for setting the multicast TTL parameter",
-          0, 255, DEFAULT_PROP_TTL_MC, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+        "Used for setting the multicast TTL parameter",
+        0, 255, DEFAULT_PROP_TTL_MC, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  gst_element_class_add_pad_template (gstelement_class,
+      gst_static_pad_template_get (&src_template));
 
   GST_DEBUG_CATEGORY_INIT (rtp_src_debug,
       "rtpsrc", 0, "GStreamer RTP src");
+
+  gst_element_class_set_static_metadata (gstelement_class,
+      "rtpsrc",
+      "Generic/Bin/Src",
+      "Simple Rtp src",
+      "Marc Leeman <marc.leeman@gmail.com>");
 }
 
 static void
