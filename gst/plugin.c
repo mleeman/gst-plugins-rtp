@@ -14,7 +14,7 @@ plugin_init (GstPlugin * plugin)
 
   ret |= gst_element_register (plugin, "rtpsrc",
             GST_RANK_PRIMARY + 1, GST_TYPE_RTP_SRC);
-  
+
   ret |= gst_element_register (plugin, "rtpsink",
             GST_RANK_PRIMARY + 1, GST_TYPE_RTP_SINK);
 
