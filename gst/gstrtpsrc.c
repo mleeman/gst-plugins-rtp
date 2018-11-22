@@ -377,26 +377,26 @@ gst_rtp_src_setup_elements(GstRtpSrc *self)
       "auto-multicast", FALSE, /* Set false since we're reusing a socket */
       NULL);
 
+  gst_bin_add (GST_BIN (self), self->udpsrc_rtcp);
+
+  g_object_get (G_OBJECT (self->udpsrc_rtcp), "used-socket", &socket, NULL);
+  g_object_set (G_OBJECT (self->udpsink_rtcp), "socket", socket, NULL);
+
   /* pads are all named */
-  name = g_strdup_printf ("recv_rtp_src_%u", self->npads);
+  name = g_strdup_printf ("recv_rtp_sink_%u", self->npads);
   gst_element_link_pads (self->udpsrc_rtp, "src", self->rtpbin, name);
   g_free(name);
 
-  name = g_strdup_printf ("send_rtcp_src_%u", self->npads);
-  gst_element_link_pads (self->rtpbin, name, self->udpsink_rtcp, "sink");
+  name = g_strdup_printf ("recv_rtcp_sink_%u", self->npads);
+  gst_element_link_pads (self->udpsrc_rtcp, "src", self->rtpbin, name);
   g_free(name);
 
   gst_element_sync_state_with_parent (self->rtpbin);
   gst_element_sync_state_with_parent (self->udpsrc_rtp);
   gst_element_sync_state_with_parent (self->udpsink_rtcp);
 
-  gst_bin_add (GST_BIN (self), self->udpsrc_rtcp);
-
-  g_object_get (G_OBJECT (self->udpsrc_rtcp), "used-socket", &socket, NULL);
-  g_object_set (G_OBJECT (self->udpsink_rtcp), "socket", socket, NULL);
-
-  name = g_strdup_printf ("send_rtcp_sink_%u", self->npads);
-  gst_element_link_pads (self->rtpbin, name, self->udpsrc_rtcp, "src");
+  name = g_strdup_printf ("send_rtcp_src_%u", self->npads);
+  gst_element_link_pads (self->rtpbin, name, self->udpsink_rtcp, "sink");
   g_free(name);
 
   gst_element_sync_state_with_parent (self->udpsrc_rtcp);
