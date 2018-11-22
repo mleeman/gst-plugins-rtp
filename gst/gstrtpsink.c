@@ -48,7 +48,8 @@ enum
   PROP_LAST
 };
 
-static void gst_rtp_sink_uri_handler_init (gpointer g_iface, gpointer iface_data);
+static void gst_rtp_sink_uri_handler_init (gpointer g_iface,
+    gpointer iface_data);
 
 #define gst_rtp_sink_parent_class parent_class
 G_DEFINE_TYPE_WITH_CODE (GstRtpSink, gst_rtp_sink, GST_TYPE_BIN,
@@ -65,7 +66,7 @@ static GstStaticPadTemplate sink_template = GST_STATIC_PAD_TEMPLATE ("sink_%u",
     GST_STATIC_CAPS ("application/x-rtp"));
 
 static GstStateChangeReturn
-gst_rtp_sink_change_state (GstElement *element, GstStateChange transition);
+gst_rtp_sink_change_state (GstElement * element, GstStateChange transition);
 
 static void
 gst_rtp_sink_set_property (GObject * object, guint prop_id,
@@ -75,7 +76,8 @@ gst_rtp_sink_set_property (GObject * object, guint prop_id,
 
   switch (prop_id) {
     case PROP_URI:
-      if (self->uri) gst_uri_unref (self->uri);
+      if (self->uri)
+        gst_uri_unref (self->uri);
       self->uri = gst_uri_from_string (g_value_get_string (value));
       gst_object_set_properties_from_uri_query (G_OBJECT (self), self->uri);
       break;
@@ -121,7 +123,8 @@ gst_rtp_sink_finalize (GObject * gobject)
 {
   GstRtpSink *self = GST_RTP_SINK (gobject);
 
-  if (self->uri) gst_uri_unref (self->uri);
+  if (self->uri)
+    gst_uri_unref (self->uri);
 
   G_OBJECT_CLASS (parent_class)->finalize (gobject);
 }
@@ -143,19 +146,19 @@ gst_rtp_sink_is_multicast (const gchar * ip_addr)
 }
 
 static void
-gst_rtp_sink_setup_elements(GstRtpSink *self)
+gst_rtp_sink_setup_elements (GstRtpSink * self)
 {
-  /*GstPad *pad;*/
+  /*GstPad *pad; */
   GSocket *socket;
-  gchar* name;
+  gchar *name;
   GstCaps *caps;
 
   /* Should not be NULL */
   g_return_if_fail (self->uri != NULL);
 
-  self->udpsink_rtp = gst_element_factory_make("udpsink", NULL);
-  self->udpsrc_rtcp = gst_element_factory_make("udpsrc", NULL);
-  self->udpsink_rtcp = gst_element_factory_make("udpsink", NULL);
+  self->udpsink_rtp = gst_element_factory_make ("udpsink", NULL);
+  self->udpsrc_rtcp = gst_element_factory_make ("udpsrc", NULL);
+  self->udpsink_rtcp = gst_element_factory_make ("udpsink", NULL);
 
   if (self->udpsink_rtp == NULL)
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
@@ -171,38 +174,28 @@ gst_rtp_sink_setup_elements(GstRtpSink *self)
 
   /* Add elements as needed, since udpsrc/udpsink for RTCP share a socket,
    * not all at the same moment */
-  g_object_set(self->udpsink_rtp,
-      "host", gst_uri_get_host(self->uri),
-      "port", gst_uri_get_port(self->uri),
-      "ttl", self->ttl,
-      "ttl-mc", self->ttl_mc,
-      NULL);
+  g_object_set (self->udpsink_rtp,
+      "host", gst_uri_get_host (self->uri),
+      "port", gst_uri_get_port (self->uri),
+      "ttl", self->ttl, "ttl-mc", self->ttl_mc, NULL);
 
   gst_bin_add (GST_BIN (self), self->udpsink_rtp);
 
-  g_object_set(self->udpsink_rtcp,
-      "host", gst_uri_get_host(self->uri),
-      "port", gst_uri_get_port(self->uri) + 1,
-      "ttl", self->ttl,
-      "ttl-mc", self->ttl_mc,
-      "auto-multicast", FALSE, /* Set false since we're reusing a socket */
+  g_object_set (self->udpsink_rtcp, "host", gst_uri_get_host (self->uri), "port", gst_uri_get_port (self->uri) + 1, "ttl", self->ttl, "ttl-mc", self->ttl_mc, "auto-multicast", FALSE,  /* Set false since we're reusing a socket */
       NULL);
 
   gst_bin_add (GST_BIN (self), self->udpsink_rtcp);
 
   /* no need to set address if unicast */
   caps = gst_caps_from_string ("application/x-rtcp");
-  g_object_set(self->udpsrc_rtcp,
-      "port", gst_uri_get_port(self->uri) + 1,
-      "auto-multicast", TRUE,
-      "caps", caps,
-      NULL);
-  gst_caps_unref(caps);
+  g_object_set (self->udpsrc_rtcp,
+      "port", gst_uri_get_port (self->uri) + 1,
+      "auto-multicast", TRUE, "caps", caps, NULL);
+  gst_caps_unref (caps);
 
-  if (gst_rtp_sink_is_multicast (gst_uri_get_host(self->uri))) {
-    g_object_set(self->udpsrc_rtcp,
-        "address", gst_uri_get_host(self->uri),
-        NULL);
+  if (gst_rtp_sink_is_multicast (gst_uri_get_host (self->uri))) {
+    g_object_set (self->udpsrc_rtcp,
+        "address", gst_uri_get_host (self->uri), NULL);
   }
 
   gst_bin_add (GST_BIN (self), self->udpsrc_rtcp);
@@ -210,15 +203,15 @@ gst_rtp_sink_setup_elements(GstRtpSink *self)
   /* pads are all named */
   name = g_strdup_printf ("send_rtp_src_%u", self->npads);
   gst_element_link_pads (self->rtpbin, name, self->udpsink_rtp, "sink");
-  g_free(name);
+  g_free (name);
 
   name = g_strdup_printf ("send_rtcp_src_%u", self->npads);
   gst_element_link_pads (self->rtpbin, name, self->udpsink_rtcp, "sink");
-  g_free(name);
+  g_free (name);
 
   name = g_strdup_printf ("recv_rtcp_sink_%u", self->npads);
   gst_element_link_pads (self->udpsrc_rtcp, "src", self->rtpbin, name);
-  g_free(name);
+  g_free (name);
 
   gst_element_sync_state_with_parent (self->udpsink_rtp);
   gst_element_sync_state_with_parent (self->udpsrc_rtcp);
@@ -231,8 +224,8 @@ gst_rtp_sink_setup_elements(GstRtpSink *self)
 }
 
 static GstPad *
-gst_rtp_sink_request_new_pad (GstElement *element,
-    GstPadTemplate *templ, const gchar *name, const GstCaps *caps)
+gst_rtp_sink_request_new_pad (GstElement * element,
+    GstPadTemplate * templ, const gchar * name, const GstCaps * caps)
 {
   GstRtpSink *self = GST_RTP_SINK (element);
   GstPad *pad = NULL;
@@ -243,11 +236,11 @@ gst_rtp_sink_request_new_pad (GstElement *element,
 
   GST_RTP_SINK_LOCK (self);
   /* FIXME: this is probably not the correct location */
-  gst_rtp_sink_setup_elements(self);
+  gst_rtp_sink_setup_elements (self);
 
   pad = gst_element_get_request_pad (self->rtpbin, nname);
   g_return_val_if_fail (pad != NULL, NULL);
-  g_free(nname);
+  g_free (nname);
 
   self->npads++;
   GST_RTP_SINK_UNLOCK (self);
@@ -256,14 +249,14 @@ gst_rtp_sink_request_new_pad (GstElement *element,
 }
 
 static void
-gst_rtp_sink_release_pad (GstElement *element, GstPad *pad)
+gst_rtp_sink_release_pad (GstElement * element, GstPad * pad)
 {
   GstRtpSink *self = GST_RTP_SINK (element);
-  GstPad *rpad = gst_ghost_pad_get_target(GST_GHOST_PAD(pad));
+  GstPad *rpad = gst_ghost_pad_get_target (GST_GHOST_PAD (pad));
 
   GST_RTP_SINK_LOCK (self);
   gst_element_release_request_pad (self->rtpbin, rpad);
-  gst_object_unref(rpad);
+  gst_object_unref (rpad);
 
   gst_pad_set_active (pad, FALSE);
   gst_element_remove_pad (GST_ELEMENT (self), pad);
@@ -273,7 +266,7 @@ gst_rtp_sink_release_pad (GstElement *element, GstPad *pad)
 }
 
 static void
-gst_rtp_sink_class_init (GstRtpSinkClass *klass)
+gst_rtp_sink_class_init (GstRtpSinkClass * klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   GstElementClass *gstelement_class = GST_ELEMENT_CLASS (klass);
@@ -283,7 +276,8 @@ gst_rtp_sink_class_init (GstRtpSinkClass *klass)
   gobject_class->finalize = gst_rtp_sink_finalize;
   gstelement_class->change_state = gst_rtp_sink_change_state;
 
-  gstelement_class->request_new_pad = GST_DEBUG_FUNCPTR (gst_rtp_sink_request_new_pad);
+  gstelement_class->request_new_pad =
+      GST_DEBUG_FUNCPTR (gst_rtp_sink_request_new_pad);
   gstelement_class->release_pad = GST_DEBUG_FUNCPTR (gst_rtp_sink_release_pad);
 
   g_object_class_install_property (gobject_class, PROP_URI,
@@ -292,14 +286,14 @@ gst_rtp_sink_class_init (GstRtpSinkClass *klass)
   g_object_class_install_property (gobject_class, PROP_TTL,
       g_param_spec_int ("ttl", "Unicast TTL",
           "Used for setting the unicast TTL parameter",
-          0, 255, DEFAULT_PROP_TTL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          0, 255, DEFAULT_PROP_TTL,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_TTL_MC,
       g_param_spec_int ("ttl-mc", "Multicast TTL",
-          "Used for setting the multicast TTL parameter",
-          0, 255, DEFAULT_PROP_TTL_MC, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          "Used for setting the multicast TTL parameter", 0, 255,
+          DEFAULT_PROP_TTL_MC, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-  GST_DEBUG_CATEGORY_INIT (rtp_sink_debug,
-      "rtpsink", 0, "GStreamer RTP sink");
+  GST_DEBUG_CATEGORY_INIT (rtp_sink_debug, "rtpsink", 0, "GStreamer RTP sink");
 
   gst_element_class_add_pad_template (gstelement_class,
       gst_static_pad_template_get (&sink_template));
@@ -307,26 +301,31 @@ gst_rtp_sink_class_init (GstRtpSinkClass *klass)
   gst_element_class_set_static_metadata (gstelement_class,
       "rtpsrc",
       "Generic/Bin/Sink",
-      "Simple Rtp sink",
-      "Marc Leeman <marc.leeman@gmail.com>");
+      "Simple Rtp sink", "Marc Leeman <marc.leeman@gmail.com>");
 }
 
 static void
-gst_rtp_sink_rtpbin_element_added_cb (GstBin *element, GstElement *new_element, gpointer data)
+gst_rtp_sink_rtpbin_element_added_cb (GstBin * element,
+    GstElement * new_element, gpointer data)
 {
   GstRtpSink *self = GST_RTP_SINK (data);
-  GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " added element %" GST_PTR_FORMAT ".", element, new_element);
+  GST_INFO_OBJECT (self,
+      "Element %" GST_PTR_FORMAT " added element %" GST_PTR_FORMAT ".", element,
+      new_element);
 }
 
 static void
-gst_rtp_sink_rtpbin_pad_added_cb (GstElement *element, GstPad *pad, gpointer data)
+gst_rtp_sink_rtpbin_pad_added_cb (GstElement * element, GstPad * pad,
+    gpointer data)
 {
   GstRtpSink *self = GST_RTP_SINK (data);
-  GstCaps* caps = gst_pad_query_caps (pad, NULL);
+  GstCaps *caps = gst_pad_query_caps (pad, NULL);
   GstPad *upad;
 
   /* Expose RTP data pad only */
-  GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " added pad %" GST_PTR_FORMAT "with caps %" GST_PTR_FORMAT ".", element, pad, caps);
+  GST_INFO_OBJECT (self,
+      "Element %" GST_PTR_FORMAT " added pad %" GST_PTR_FORMAT "with caps %"
+      GST_PTR_FORMAT ".", element, pad, caps);
 
   /* Sanity checks */
   if (GST_PAD_DIRECTION (pad) == GST_PAD_SINK) {
@@ -352,7 +351,7 @@ gst_rtp_sink_rtpbin_pad_added_cb (GstElement *element, GstPad *pad, gpointer dat
 
     return;
   }
-  gst_caps_unref(caps);
+  gst_caps_unref (caps);
 
   /* TODO: funnel? */
   upad = gst_element_get_compatible_pad (self->udpsink_rtp, pad, NULL);
@@ -361,16 +360,19 @@ gst_rtp_sink_rtpbin_pad_added_cb (GstElement *element, GstPad *pad, gpointer dat
 }
 
 static void
-gst_rtp_sink_rtpbin_pad_removed_cb (GstElement *element, GstPad *pad, gpointer data)
+gst_rtp_sink_rtpbin_pad_removed_cb (GstElement * element, GstPad * pad,
+    gpointer data)
 {
   GstRtpSink *self = GST_RTP_SINK (data);
-  GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " removed pad %" GST_PTR_FORMAT ".", element, pad);
+  GST_INFO_OBJECT (self,
+      "Element %" GST_PTR_FORMAT " removed pad %" GST_PTR_FORMAT ".", element,
+      pad);
 }
 
 static void
-gst_rtp_sink_setup_rtpbin(GstRtpSink *self)
+gst_rtp_sink_setup_rtpbin (GstRtpSink * self)
 {
-  self->rtpbin = gst_element_factory_make("rtpbin", NULL);
+  self->rtpbin = gst_element_factory_make ("rtpbin", NULL);
 
   if (self->rtpbin == NULL)
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
@@ -390,7 +392,7 @@ gst_rtp_sink_setup_rtpbin(GstRtpSink *self)
 }
 
 static GstStateChangeReturn
-gst_rtp_sink_change_state (GstElement *element, GstStateChange transition)
+gst_rtp_sink_change_state (GstElement * element, GstStateChange transition)
 {
   GstRtpSink *self = GST_RTP_SINK (element);
   GstStateChangeReturn ret = GST_STATE_CHANGE_SUCCESS;
@@ -401,7 +403,7 @@ gst_rtp_sink_change_state (GstElement *element, GstStateChange transition)
 
   switch (transition) {
     case GST_STATE_CHANGE_NULL_TO_READY:
-      /*gst_rtp_sink_setup_elements(self);*/
+      /*gst_rtp_sink_setup_elements(self); */
       break;
     case GST_STATE_CHANGE_READY_TO_PAUSED:
       break;
@@ -427,7 +429,7 @@ gst_rtp_sink_change_state (GstElement *element, GstStateChange transition)
 
 
 static void
-gst_rtp_sink_init (GstRtpSink *self)
+gst_rtp_sink_init (GstRtpSink * self)
 {
   self->rtpbin = NULL;
   self->udpsink_rtp = NULL;
@@ -439,7 +441,7 @@ gst_rtp_sink_init (GstRtpSink *self)
   self->ttl = DEFAULT_PROP_TTL;
   self->ttl_mc = DEFAULT_PROP_TTL_MC;
 
-  gst_rtp_sink_setup_rtpbin(self);
+  gst_rtp_sink_setup_rtpbin (self);
 
   GST_OBJECT_FLAG_SET (GST_OBJECT (self), GST_ELEMENT_FLAG_SINK);
 }
@@ -467,7 +469,8 @@ gst_rtp_sink_uri_get_uri (GstURIHandler * handler)
 }
 
 static gboolean
-gst_rtp_sink_uri_set_uri (GstURIHandler * handler, const gchar * uri, GError ** error)
+gst_rtp_sink_uri_set_uri (GstURIHandler * handler, const gchar * uri,
+    GError ** error)
 {
   GstRtpSink *self = (GstRtpSink *) handler;
 
@@ -486,5 +489,3 @@ gst_rtp_sink_uri_handler_init (gpointer g_iface, gpointer iface_data)
   iface->get_uri = gst_rtp_sink_uri_get_uri;
   iface->set_uri = gst_rtp_sink_uri_set_uri;
 }
-
-
