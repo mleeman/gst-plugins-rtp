@@ -7,6 +7,7 @@
 #include <gio/gio.h>
 
 #include "gstrtpsrc.h"
+#include "gstrtpcaps.h"
 #include "gst_object_set_properties_from_uri_query.h"
 
 GST_DEBUG_CATEGORY_STATIC (rtp_src_debug);
@@ -200,6 +201,58 @@ gst_rtp_src_rtpbin_pad_removed_cb (GstElement *element, GstPad *pad, gpointer da
 {
   GstRtpSrc *self = GST_RTP_SRC (data);
   GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " removed pad %" GST_PTR_FORMAT ".", element, pad);
+}
+
+static GstCaps *
+gst_rtp_src_rtpbin_request_pt_map_cb (GstElement *session, guint ssrc, guint pt, gpointer data)
+{
+  GstRtpSrc *self = GST_RTP_SRC (data);
+  GstCaps *ret = NULL;
+  const RtpCaps *p;
+  gchar *encoding_name = NULL;
+  int i = 0;
+
+  GST_DEBUG_OBJECT (self, "Requesting caps for session %u and pt %u in session %u.", ssrc, pt);
+
+  i = 0;
+  while (RTP_STATIC_CAPS[i].pt >= 0) {
+    p = &(RTP_STATIC_CAPS[i++]);
+    if (p->pt == pt) {
+      goto beach;
+    }
+  }
+
+  encoding_name = g_strdup ("H264");
+
+dynamic:
+  i = 0;
+  while (RTP_DYNAMIC_CAPS[i].pt >= 0) {
+    p = &(RTP_DYNAMIC_CAPS[i++]);
+    if (g_strcmp0 (p->encoding_name, encoding_name) == 0) {
+      goto beach;
+    }
+  }
+
+  i = 0;
+  /* lookup the caps based on encoding-name */
+  while (RTP_STATIC_CAPS[i].pt >= 0) {
+    p = &(RTP_STATIC_CAPS[i++]);
+    if (g_strcmp0 (p->encoding_name, encoding_name) == 0) {
+      goto beach;
+    }
+  }
+
+  return NULL;
+
+beach:
+
+  ret = gst_caps_new_simple ("application/x-rtp",
+      "encoding-name", G_TYPE_STRING, p->encoding_name,
+      "clock-rate", G_TYPE_INT, p->clock_rate,
+      "media", G_TYPE_STRING, p->media,
+      NULL);
+
+  return ret;
 }
 
 static void
