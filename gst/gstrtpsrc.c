@@ -175,17 +175,48 @@ static void
 gst_rtp_src_rtpbin_pad_added_cb (GstElement *element, GstPad *pad, gpointer data)
 {
   GstRtpSrc *self = GST_RTP_SRC (data);
+  GstCaps* caps = gst_pad_query_caps (pad, NULL);
   GstPad *upad;
   gchar *name;
 
-  GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " added pad %" GST_PTR_FORMAT ".", element, pad);
+  /* Expose RTP data pad only */
+  GST_INFO_OBJECT (self, "Element %" GST_PTR_FORMAT " added pad %" GST_PTR_FORMAT "with caps %" GST_PTR_FORMAT ".", element, pad, caps);
+
+  /* Sanity checks */
+  if (GST_PAD_DIRECTION (pad) == GST_PAD_SINK) {
+    /* Sink pad, do not expose */
+    gst_caps_unref (caps);
+    return;
+  }
+
+  if (G_LIKELY (caps)) {
+    GstCaps *ref_caps = gst_caps_new_empty_simple ("application/x-rtcp");
+
+    if (gst_caps_can_intersect (caps, ref_caps)) {
+      /* SRC RTCP caps, do not expose */
+      gst_caps_unref (ref_caps);
+      gst_caps_unref (caps);
+
+      return;
+    }
+    gst_caps_unref (ref_caps);
+  } else {
+    GST_ERROR_OBJECT (self, "Pad with no caps detected.");
+    gst_caps_unref (caps);
+
+    return;
+  }
+  gst_caps_unref (caps);
 
   GST_RTP_SRC_LOCK (self);
-  name = g_strdup_printf("src_%u", self->npads++);
+  /*name = g_strdup_printf("src_%u", self->npads++);*/
+  name = g_strdup_printf("src_%u", 0);
   upad = gst_ghost_pad_new (name, pad);
   g_free(name);
 
   gst_pad_set_active(upad, TRUE);
+  gst_element_add_pad (GST_ELEMENT (self), upad);
+
   GST_RTP_SRC_UNLOCK (self);
 }
 
