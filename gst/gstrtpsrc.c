@@ -351,8 +351,6 @@ gst_rtp_src_setup_elements(GstRtpSrc *self)
   g_object_set(self->udpsrc_rtp,
       "address", gst_uri_get_host(self->uri),
       "port", gst_uri_get_port(self->uri),
-      "ttl", self->ttl,
-      "ttl-mc", self->ttl_mc,
       NULL);
 
   gst_bin_add (GST_BIN (self), self->udpsink_rtcp);
