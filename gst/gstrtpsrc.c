@@ -408,7 +408,7 @@ gst_rtp_src_change_state (GstElement *element, GstStateChange transition)
   GstRtpSrc *self = GST_RTP_SRC (element);
   GstStateChangeReturn ret = GST_STATE_CHANGE_SUCCESS;
 
-  GST_DEBUG ("changing state: %s => %s",
+  GST_DEBUG_OBJECT (self, "Changing state: %s => %s",
       gst_element_state_get_name (GST_STATE_TRANSITION_CURRENT (transition)),
       gst_element_state_get_name (GST_STATE_TRANSITION_NEXT (transition)));
 
