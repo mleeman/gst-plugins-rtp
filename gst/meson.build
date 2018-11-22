@@ -11,7 +11,7 @@ gst_plugins_rtp_headers = [
   'gst_object_set_properties_from_uri_query.h',
 ]
 
-gstrtp = library('gstrtp',
+gstrtp = library('gstnrtp',
   gst_plugins_rtp_sources,
   dependencies: [gst_dep, gstbase_dep, gstnet_dep, gstcontroller_dep],
   include_directories: [configinc],
