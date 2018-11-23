@@ -14,4 +14,11 @@ The code can be used as follows
 ```
 gst-launch-1.0 videotestsrc ! x264enc ! rtph264pay config-interval=3 ! rtpsink uri=rtp://239.1.1.1:1234
 gst-play-1.0 rtp://239.1.1.1:1234
+
+gst-launch-1.0 videotestsrc ! x264enc ! rtph264pay config-interval=1 ! rtpsink uri=rtp://239.1.2.3:5000
+gst-launch-1.0 rtpsrc uri=rtp://239.1.2.3:5000?encoding-name=H264 ! rtph264depay ! avdec_h264 ! videoconvert ! xvimagesink
+
+gst-launch-1.0 videotestsrc ! avenc_mpeg4 ! rtpmp4vpay config-interval=1 ! rtpsink uri=rtp://239.1.2.3:5000
+gst-launch-1.0 rtpsrc uri=rtp://239.1.2.3:5000?encoding-name=MP4V-ES ! rtpmp4vdepay ! avdec_mpeg4 ! videoconvert ! xvimagesink
+
 ```
