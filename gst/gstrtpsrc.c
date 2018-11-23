@@ -14,6 +14,7 @@ GST_DEBUG_CATEGORY_STATIC (rtp_src_debug);
 #define GST_CAT_DEFAULT rtp_src_debug
 #define DEFAULT_PROP_TTL              64
 #define DEFAULT_PROP_TTL_MC           1
+#define DEFAULT_PROP_ENCODING_NAME    NULL
 
 #define DEFAULT_PROP_URI              "rtp://0.0.0.0:5004"
 
@@ -26,6 +27,7 @@ struct _GstRtpSrc
   gint ttl;
   gint ttl_mc;
   gint latency;
+  gchar *encoding_name;
 
   /* Internal elements */
   GstElement *rtpbin;
@@ -46,6 +48,7 @@ enum
   PROP_URI,
   PROP_TTL,
   PROP_TTL_MC,
+  PROP_ENCODING_NAME,
 
   PROP_LAST
 };
@@ -69,11 +72,67 @@ static GstStaticPadTemplate src_template = GST_STATIC_PAD_TEMPLATE ("src_%u",
 static GstStateChangeReturn
 gst_rtp_src_change_state (GstElement * element, GstStateChange transition);
 
+static GstCaps *
+gst_rtp_src_rtpbin_request_pt_map_cb (GstElement *rtpbin, guint session_id,
+    guint pt, gpointer data)
+{
+  GstRtpSrc *self = GST_RTP_SRC (data);
+  GstCaps *ret = NULL;
+  const RtpCaps *p;
+  int i = 0;
+
+  GST_DEBUG_OBJECT (self,
+      "Requesting caps for session %u and pt %u in session %u.", session_id, pt);
+
+  if (self->encoding_name != NULL)
+    goto dynamic;
+
+  i = 0;
+  while (RTP_STATIC_CAPS[i].pt >= 0) {
+    p = &(RTP_STATIC_CAPS[i++]);
+    if (p->pt == pt) {
+      goto beach;
+    }
+  }
+
+  self->encoding_name = g_strdup ("H264");
+
+dynamic:
+  i = 0;
+  while (RTP_DYNAMIC_CAPS[i].pt >= 0) {
+    p = &(RTP_DYNAMIC_CAPS[i++]);
+    if (g_strcmp0 (p->encoding_name, self->encoding_name) == 0) {
+      goto beach;
+    }
+  }
+
+  i = 0;
+  /* lookup the caps based on encoding-name */
+  while (RTP_STATIC_CAPS[i].pt >= 0) {
+    p = &(RTP_STATIC_CAPS[i++]);
+    if (g_strcmp0 (p->encoding_name, self->encoding_name) == 0) {
+      goto beach;
+    }
+  }
+
+  return NULL;
+
+beach:
+
+  ret = gst_caps_new_simple ("application/x-rtp",
+      "encoding-name", G_TYPE_STRING, p->encoding_name,
+      "clock-rate", G_TYPE_INT, p->clock_rate,
+      "media", G_TYPE_STRING, p->media, NULL);
+
+  return ret;
+}
+
 static void
 gst_rtp_src_set_property (GObject * object, guint prop_id,
     const GValue * value, GParamSpec * pspec)
 {
   GstRtpSrc *self = GST_RTP_SRC (object);
+  GstCaps *caps;
 
   switch (prop_id) {
     case PROP_URI:
@@ -87,6 +146,16 @@ gst_rtp_src_set_property (GObject * object, guint prop_id,
       break;
     case PROP_TTL_MC:
       self->ttl_mc = g_value_get_int (value);
+      break;
+    case PROP_ENCODING_NAME:
+      if (self->encoding_name)
+        g_free (self->encoding_name);
+      self->encoding_name = g_value_dup_string (value);
+      if (self->udpsrc_rtp) {
+        caps = gst_rtp_src_rtpbin_request_pt_map_cb (NULL, 0, 96, self);
+        g_object_set (G_OBJECT (self->udpsrc_rtp), "caps", caps, NULL);
+        gst_caps_unref (caps);
+      }
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -112,6 +181,9 @@ gst_rtp_src_get_property (GObject * object, guint prop_id,
       break;
     case PROP_TTL_MC:
       g_value_set_int (value, self->ttl_mc);
+      break;
+    case PROP_ENCODING_NAME:
+      g_value_set_string (value, self->encoding_name);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -153,6 +225,11 @@ gst_rtp_src_class_init (GstRtpSrcClass * klass)
       g_param_spec_int ("ttl-mc", "Multicast TTL",
           "Used for setting the multicast TTL parameter", 0, 255,
           DEFAULT_PROP_TTL_MC, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class, PROP_ENCODING_NAME,
+      g_param_spec_string ("encoding-name", "Caps encoding name",
+          "Encoding name use to determine caps parameters", DEFAULT_PROP_ENCODING_NAME,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   gst_element_class_add_pad_template (gstelement_class,
       gst_static_pad_template_get (&src_template));
@@ -253,57 +330,21 @@ gst_rtp_src_rtpbin_pad_removed_cb (GstElement * element, GstPad * pad,
       pad);
 }
 
-static GstCaps *
-gst_rtp_src_rtpbin_request_pt_map_cb (GstElement * session, guint ssrc,
-    guint pt, gpointer data)
+static void
+gst_rtp_src_rtpbin_on_ssrc_collision_cb (GstElement *rtpbin, guint session_id, guint ssrc, gpointer data)
 {
   GstRtpSrc *self = GST_RTP_SRC (data);
-  GstCaps *ret = NULL;
-  const RtpCaps *p;
-  gchar *encoding_name = NULL;
-  int i = 0;
 
-  GST_DEBUG_OBJECT (self,
-      "Requesting caps for session %u and pt %u in session %u.", ssrc, pt);
+  GST_WARNING_OBJECT (self,
+      "Dectected an SSRC collision: session 0x%x, ssrc 0x%x.", session_id, ssrc);
+}
 
-  i = 0;
-  while (RTP_STATIC_CAPS[i].pt >= 0) {
-    p = &(RTP_STATIC_CAPS[i++]);
-    if (p->pt == pt) {
-      goto beach;
-    }
-  }
+static void
+gst_rtp_src_rtpbin_on_new_ssrc_cb (GstElement *rtpbin, guint session_id, guint ssrc, gpointer data)
+{
+  GstRtpSrc *self = GST_RTP_SRC (data);
 
-  encoding_name = g_strdup ("H264");
-
-dynamic:
-  i = 0;
-  while (RTP_DYNAMIC_CAPS[i].pt >= 0) {
-    p = &(RTP_DYNAMIC_CAPS[i++]);
-    if (g_strcmp0 (p->encoding_name, encoding_name) == 0) {
-      goto beach;
-    }
-  }
-
-  i = 0;
-  /* lookup the caps based on encoding-name */
-  while (RTP_STATIC_CAPS[i].pt >= 0) {
-    p = &(RTP_STATIC_CAPS[i++]);
-    if (g_strcmp0 (p->encoding_name, encoding_name) == 0) {
-      goto beach;
-    }
-  }
-
-  return NULL;
-
-beach:
-
-  ret = gst_caps_new_simple ("application/x-rtp",
-      "encoding-name", G_TYPE_STRING, p->encoding_name,
-      "clock-rate", G_TYPE_INT, p->clock_rate,
-      "media", G_TYPE_STRING, p->media, NULL);
-
-  return ret;
+  GST_INFO_OBJECT (self, "Dectected a new SSRC: session 0x%x, ssrc 0x%x.", session_id, ssrc);
 }
 
 static void
@@ -347,12 +388,10 @@ gst_rtp_src_setup_elements (GstRtpSrc * self)
       G_CALLBACK (gst_rtp_src_rtpbin_pad_removed_cb), self);
   g_signal_connect (self->rtpbin, "request-pt-map",
       G_CALLBACK (gst_rtp_src_rtpbin_request_pt_map_cb), self);
-#if 0
   g_signal_connect (self->rtpbin, "on-new-ssrc",
       G_CALLBACK (gst_rtp_src_rtpbin_on_new_ssrc_cb), self);
   g_signal_connect (self->rtpbin, "on-ssrc-collision",
       G_CALLBACK (gst_rtp_src_rtpbin_on_ssrc_collision_cb), self);
-#endif
 
   /* Add elements as needed, since udpsrc/udpsink for RTCP share a socket,
    * not all at the same moment */
@@ -452,6 +491,7 @@ gst_rtp_src_init (GstRtpSrc * self)
   self->npads = 0u;
   self->ttl = DEFAULT_PROP_TTL;
   self->ttl_mc = DEFAULT_PROP_TTL_MC;
+  self->encoding_name = DEFAULT_PROP_ENCODING_NAME;
 
   GST_OBJECT_FLAG_SET (GST_OBJECT (self), GST_ELEMENT_FLAG_SOURCE);
 }
