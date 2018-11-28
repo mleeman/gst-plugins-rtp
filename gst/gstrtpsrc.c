@@ -82,7 +82,7 @@ gst_rtp_src_rtpbin_request_pt_map_cb (GstElement *rtpbin, guint session_id,
   int i = 0;
 
   GST_DEBUG_OBJECT (self,
-      "Requesting caps for session %u and pt %u in session %u.", session_id, pt);
+      "Requesting caps for session-id 0x%x and pt %u.", session_id, pt);
 
   if (self->encoding_name != NULL)
     goto dynamic;
@@ -336,7 +336,7 @@ gst_rtp_src_rtpbin_on_ssrc_collision_cb (GstElement *rtpbin, guint session_id, g
   GstRtpSrc *self = GST_RTP_SRC (data);
 
   GST_WARNING_OBJECT (self,
-      "Dectected an SSRC collision: session 0x%x, ssrc 0x%x.", session_id, ssrc);
+      "Dectected an SSRC collision: session-id 0x%x, ssrc 0x%x.", session_id, ssrc);
 }
 
 static void
@@ -344,7 +344,7 @@ gst_rtp_src_rtpbin_on_new_ssrc_cb (GstElement *rtpbin, guint session_id, guint s
 {
   GstRtpSrc *self = GST_RTP_SRC (data);
 
-  GST_INFO_OBJECT (self, "Dectected a new SSRC: session 0x%x, ssrc 0x%x.", session_id, ssrc);
+  GST_INFO_OBJECT (self, "Dectected a new SSRC: session-id 0x%x, ssrc 0x%x.", session_id, ssrc);
 }
 
 static void
