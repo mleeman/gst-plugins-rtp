@@ -76,7 +76,7 @@ static GstStateChangeReturn
 gst_rtp_src_change_state (GstElement * element, GstStateChange transition);
 
 static GstCaps *
-gst_rtp_src_rtpbin_request_pt_map_cb (GstElement *rtpbin, guint session_id,
+gst_rtp_src_rtpbin_request_pt_map_cb (GstElement * rtpbin, guint session_id,
     guint pt, gpointer data)
 {
   GstRtpSrc *self = GST_RTP_SRC (data);
@@ -237,14 +237,15 @@ gst_rtp_src_class_init (GstRtpSrcClass * klass)
 
   g_object_class_install_property (gobject_class, PROP_ENCODING_NAME,
       g_param_spec_string ("encoding-name", "Caps encoding name",
-          "Encoding name use to determine caps parameters", DEFAULT_PROP_ENCODING_NAME,
+          "Encoding name use to determine caps parameters",
+          DEFAULT_PROP_ENCODING_NAME,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_LATENCY,
       g_param_spec_uint ("latency", "Buffer latency in ms",
-        "Default amount of ms to buffer in the jitterbuffers", 0,
-        G_MAXUINT, DEFAULT_PROP_LATENCY,
-        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          "Default amount of ms to buffer in the jitterbuffers", 0,
+          G_MAXUINT, DEFAULT_PROP_LATENCY,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   gst_element_class_add_pad_template (gstelement_class,
       gst_static_pad_template_get (&src_template));
@@ -346,20 +347,24 @@ gst_rtp_src_rtpbin_pad_removed_cb (GstElement * element, GstPad * pad,
 }
 
 static void
-gst_rtp_src_rtpbin_on_ssrc_collision_cb (GstElement *rtpbin, guint session_id, guint ssrc, gpointer data)
+gst_rtp_src_rtpbin_on_ssrc_collision_cb (GstElement * rtpbin, guint session_id,
+    guint ssrc, gpointer data)
 {
   GstRtpSrc *self = GST_RTP_SRC (data);
 
   GST_WARNING_OBJECT (self,
-      "Dectected an SSRC collision: session-id 0x%x, ssrc 0x%x.", session_id, ssrc);
+      "Dectected an SSRC collision: session-id 0x%x, ssrc 0x%x.", session_id,
+      ssrc);
 }
 
 static void
-gst_rtp_src_rtpbin_on_new_ssrc_cb (GstElement *rtpbin, guint session_id, guint ssrc, gpointer data)
+gst_rtp_src_rtpbin_on_new_ssrc_cb (GstElement * rtpbin, guint session_id,
+    guint ssrc, gpointer data)
 {
   GstRtpSrc *self = GST_RTP_SRC (data);
 
-  GST_INFO_OBJECT (self, "Dectected a new SSRC: session-id 0x%x, ssrc 0x%x.", session_id, ssrc);
+  GST_INFO_OBJECT (self, "Dectected a new SSRC: session-id 0x%x, ssrc 0x%x.",
+      session_id, ssrc);
 }
 
 static void
