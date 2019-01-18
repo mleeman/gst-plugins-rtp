@@ -15,6 +15,7 @@ GST_DEBUG_CATEGORY_STATIC (rtp_src_debug);
 #define DEFAULT_PROP_TTL              64
 #define DEFAULT_PROP_TTL_MC           1
 #define DEFAULT_PROP_ENCODING_NAME    NULL
+#define DEFAULT_PROP_LATENCY          200
 
 #define DEFAULT_PROP_URI              "rtp://0.0.0.0:5004"
 
@@ -28,6 +29,7 @@ struct _GstRtpSrc
   gint ttl_mc;
   gint latency;
   gchar *encoding_name;
+  guint latency_ms;
 
   /* Internal elements */
   GstElement *rtpbin;
@@ -49,6 +51,7 @@ enum
   PROP_TTL,
   PROP_TTL_MC,
   PROP_ENCODING_NAME,
+  PROP_LATENCY,
 
   PROP_LAST
 };
@@ -157,6 +160,9 @@ gst_rtp_src_set_property (GObject * object, guint prop_id,
         gst_caps_unref (caps);
       }
       break;
+    case PROP_LATENCY:
+      self->latency = g_value_get_uint (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -184,6 +190,9 @@ gst_rtp_src_get_property (GObject * object, guint prop_id,
       break;
     case PROP_ENCODING_NAME:
       g_value_set_string (value, self->encoding_name);
+      break;
+    case PROP_LATENCY:
+      g_value_set_uint (value, self->latency);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -230,6 +239,12 @@ gst_rtp_src_class_init (GstRtpSrcClass * klass)
       g_param_spec_string ("encoding-name", "Caps encoding name",
           "Encoding name use to determine caps parameters", DEFAULT_PROP_ENCODING_NAME,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class, PROP_LATENCY,
+      g_param_spec_uint ("latency", "Buffer latency in ms",
+        "Default amount of ms to buffer in the jitterbuffers", 0,
+        G_MAXUINT, DEFAULT_PROP_LATENCY,
+        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   gst_element_class_add_pad_template (gstelement_class,
       gst_static_pad_template_get (&src_template));
@@ -393,6 +408,8 @@ gst_rtp_src_setup_elements (GstRtpSrc * self)
   g_signal_connect (self->rtpbin, "on-ssrc-collision",
       G_CALLBACK (gst_rtp_src_rtpbin_on_ssrc_collision_cb), self);
 
+  g_object_set (self->rtpbin, "latency", self->latency, NULL);
+
   /* Add elements as needed, since udpsrc/udpsink for RTCP share a socket,
    * not all at the same moment */
   gst_bin_add (GST_BIN (self), self->rtpbin);
@@ -492,6 +509,7 @@ gst_rtp_src_init (GstRtpSrc * self)
   self->ttl = DEFAULT_PROP_TTL;
   self->ttl_mc = DEFAULT_PROP_TTL_MC;
   self->encoding_name = DEFAULT_PROP_ENCODING_NAME;
+  self->latency = DEFAULT_PROP_LATENCY;
 
   GST_OBJECT_FLAG_SET (GST_OBJECT (self), GST_ELEMENT_FLAG_SOURCE);
 }
