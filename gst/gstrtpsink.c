@@ -1,3 +1,37 @@
+/* GStreamer
+ * Copyright (C) <2018> Marc Leeman <marc.leeman@gmail.com>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
+ */
+
+/**
+ * SECTION: gstrtsinkp
+ * @title: GstRtpSink
+ * @short description: element with Uri interface to stream RTP data to
+ * the network.
+ *
+ * RTP (RFC 3550) is a protocol to stream media over the network while
+ * retaining the timing information and providing enough information to
+ * reconstruct the correct timing domain by the receiver.
+ *
+ * This element hooks up the correct sockets to support both RTP as the
+ * accompanying RTCP layer.
+ *
+ * This Bin handles streaming RTP payloaded data on the network.
+ */
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -280,14 +314,38 @@ gst_rtp_sink_class_init (GstRtpSinkClass * klass)
       GST_DEBUG_FUNCPTR (gst_rtp_sink_request_new_pad);
   gstelement_class->release_pad = GST_DEBUG_FUNCPTR (gst_rtp_sink_release_pad);
 
+  /**
+   * GstRtpSink:uri:
+   *
+   * uri to stream RTP to. All GStreamer parameters can be
+   * encoded in the URI, this URI format is RFC compliant.
+   *
+   * Since: 1.14.4.1
+   */
   g_object_class_install_property (gobject_class, PROP_URI,
       g_param_spec_string ("uri", "URI", "URI to send data on",
           DEFAULT_PROP_URI, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  /**
+   * GstRtpSink:ttl:
+   *
+   * Set the unicast TTL parameter.
+   *
+   * Since: 1.14.4.1
+   */
   g_object_class_install_property (gobject_class, PROP_TTL,
       g_param_spec_int ("ttl", "Unicast TTL",
           "Used for setting the unicast TTL parameter",
           0, 255, DEFAULT_PROP_TTL,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  /**
+   * GstRtpSink:ttl-mc:
+   *
+   * Set the multicast TTL parameter.
+   *
+   * Since: 1.14.4.1
+   */
   g_object_class_install_property (gobject_class, PROP_TTL_MC,
       g_param_spec_int ("ttl-mc", "Multicast TTL",
           "Used for setting the multicast TTL parameter", 0, 255,
@@ -489,3 +547,5 @@ gst_rtp_sink_uri_handler_init (gpointer g_iface, gpointer iface_data)
   iface->get_uri = gst_rtp_sink_uri_get_uri;
   iface->set_uri = gst_rtp_sink_uri_set_uri;
 }
+
+/* ex: set tabstop=2 shiftwidth=2 expandtab: */

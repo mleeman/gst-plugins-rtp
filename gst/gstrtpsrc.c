@@ -1,3 +1,38 @@
+/* GStreamer
+ * Copyright (C) <2018> Marc Leeman <marc.leeman@gmail.com>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
+ */
+
+/**
+ * SECTION: gstrtpsrc
+ * @title: GstRtpSrc
+ * @short description: element with Uri interface to get RTP data from
+ * the network.
+ *
+ * RTP (RFC 3550) is a protocol to stream media over the network while
+ * retaining the timing information and providing enough information to
+ * reconstruct the correct timing domain by the receiver.
+ *
+ * This element hooks up the correct sockets to support both RTP as the
+ * accompanying RTCP layer.
+ *
+ * This Bin handles taking in of data from the network and provides the
+ * RTP payloaded data.
+ */
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -75,6 +110,15 @@ static GstStaticPadTemplate src_template = GST_STATIC_PAD_TEMPLATE ("src_%u",
 static GstStateChangeReturn
 gst_rtp_src_change_state (GstElement * element, GstStateChange transition);
 
+/**
+ * gst_rtp_src_rtpbin_erquest_pt_map_cb:
+ * @self: The current #GstRtpSrc object
+ *
+ * #GstRtpBin callback to map a pt on RTP caps.
+ *
+ * Returns: (transfer none): the guess on the RTP caps based on the PT
+ * and caps.
+ */
 static GstCaps *
 gst_rtp_src_rtpbin_request_pt_map_cb (GstElement * rtpbin, guint session_id,
     guint pt, gpointer data)
@@ -98,6 +142,8 @@ gst_rtp_src_rtpbin_request_pt_map_cb (GstElement * rtpbin, guint session_id,
     }
   }
 
+  GST_DEBUG_OBJECT (self, "Could not determine caps based on pt and"
+      " the encoding-name was not set. Assuming H.264");
   self->encoding_name = g_strdup ("H264");
 
 dynamic:
@@ -222,25 +268,65 @@ gst_rtp_src_class_init (GstRtpSrcClass * klass)
   gobject_class->finalize = gst_rtp_src_finalize;
   gstelement_class->change_state = gst_rtp_src_change_state;
 
+  /**
+   * GstRtpSrc:uri:
+   *
+   * uri to an RTP from. All GStreamer parameters can be
+   * encoded in the URI, this URI format is RFC compliant.
+   *
+   * Since: 1.14.4.1
+   */
   g_object_class_install_property (gobject_class, PROP_URI,
       g_param_spec_string ("uri", "URI", "URI to send data on",
           DEFAULT_PROP_URI, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  /**
+   * GstRtpSrc:ttl:
+   *
+   * Set the unicast TTL parameter. In RTP this of importance for RTCP.
+   *
+   * Since: 1.14.4.1
+   */
   g_object_class_install_property (gobject_class, PROP_TTL,
       g_param_spec_int ("ttl", "Unicast TTL",
           "Used for setting the unicast TTL parameter",
           0, 255, DEFAULT_PROP_TTL,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  /**
+   * GstRtpSrc:ttl-mc:
+   *
+   * Set the multicast TTL parameter. In RTP this of importance for RTCP.
+   *
+   * Since: 1.14.4.1
+   */
   g_object_class_install_property (gobject_class, PROP_TTL_MC,
       g_param_spec_int ("ttl-mc", "Multicast TTL",
           "Used for setting the multicast TTL parameter", 0, 255,
           DEFAULT_PROP_TTL_MC, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
+  /**
+   * GstRtpSrc:encoding-name:
+   *
+   * Set the encoding name of the stream to use. This is a short-hand for
+   * the full caps and maps typically to the encoding-name in the RTP caps.
+   *
+   * Since: 1.14.4.1
+   */
   g_object_class_install_property (gobject_class, PROP_ENCODING_NAME,
       g_param_spec_string ("encoding-name", "Caps encoding name",
           "Encoding name use to determine caps parameters",
           DEFAULT_PROP_ENCODING_NAME,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
+  /**
+   * GstRtpSrc:latency:
+   *
+   * Set the size of the latency buffer in the
+   * GstRtpBin/GstRtpJitterBuffer to compensate for network jitter.
+   *
+   * Since: 1.14.4.1
+   */
   g_object_class_install_property (gobject_class, PROP_LATENCY,
       g_param_spec_uint ("latency", "Buffer latency in ms",
           "Default amount of ms to buffer in the jitterbuffers", 0,
@@ -562,3 +648,5 @@ gst_rtp_src_uri_handler_init (gpointer g_iface, gpointer iface_data)
   iface->get_uri = gst_rtp_src_uri_get_uri;
   iface->set_uri = gst_rtp_src_uri_set_uri;
 }
+
+/* ex: set tabstop=2 shiftwidth=2 expandtab: */
