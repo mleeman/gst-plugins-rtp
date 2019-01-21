@@ -1,5 +1,5 @@
-gst-plugins-rtp (1.14.4.1) UNRELEASED; urgency=medium
+gst-plugins-rtp (1.14.4.1) unstable; urgency=medium
 
-  * initial release
+  * initial release (Closes: #920016)
 
  -- Marc Leeman <marc.leeman@gmail.com>  Sat, 17 Nov 2018 00:46:19 +0100
