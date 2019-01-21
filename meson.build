@@ -1,4 +1,4 @@
-project('gst-plugins-rtp', 'c', 
+project('gst-plugins-rtp', 'c',
   version : '1.14.0.1',
   meson_version : '>= 0.46.0',
   default_options : [ 'warning_level=1',
@@ -23,34 +23,34 @@ cc = meson.get_compiler('c')
 cdata = configuration_data()
 
 check_headers = [
-] 
-foreach h : check_headers   
-  if cc.has_header(h.get(1))     
-    cdata.set(h.get(0), 1)   
-  endif 
+]
+foreach h : check_headers
+  if cc.has_header(h.get(1))
+    cdata.set(h.get(0), 1)
+  endif
 endforeach
 
 libm = cc.find_library('m', required : false)
 
-warning_flags = [   
-  '-Wmissing-declarations',   
-  '-Wredundant-decls',   
-  '-Wundef',   
-  '-Wwrite-strings',   
-  '-Wformat',   
-  '-Wformat-nonliteral',   
-  '-Wformat-security',   
-  '-Winit-self',   
-  '-Wmissing-include-dirs',   
-  '-Waddress',   
-  '-Wno-multichar',   
-  '-Wvla',   
-  '-Wpointer-arith', 
+warning_flags = [
+  '-Wmissing-declarations',
+  '-Wredundant-decls',
+  '-Wundef',
+  '-Wwrite-strings',
+  '-Wformat',
+  '-Wformat-nonliteral',
+  '-Wformat-security',
+  '-Winit-self',
+  '-Wmissing-include-dirs',
+  '-Waddress',
+  '-Wno-multichar',
+  '-Wvla',
+  '-Wpointer-arith',
 ]
 
-warning_c_flags = [   
-  '-Wmissing-prototypes',   
-  '-Wdeclaration-after-statement', 
+warning_c_flags = [
+  '-Wmissing-prototypes',
+  '-Wdeclaration-after-statement',
 ]
 
 foreach extra_arg : warning_flags
