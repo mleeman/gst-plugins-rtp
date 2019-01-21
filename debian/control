@@ -4,6 +4,8 @@ Priority: optional
 Maintainer: Marc Leeman <marc.leeman@gmail.com>
 Build-Depends: debhelper (>= 10),
                libgstreamer1.0-dev,
+               libgstreamer-plugins-base1.0-dev,
+               gstreamer1.0-plugins-good,
                pkg-config (>= 0.26),
                meson
 Standards-Version: 3.9.8
