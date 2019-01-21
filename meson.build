@@ -93,11 +93,16 @@ gst_dep = dependency('gstreamer-1.0', version : gst_req,
   fallback : ['gstreamer', 'gst_dep'])
 gstbase_dep = dependency('gstreamer-base-1.0', version : gst_req,
   fallback : ['gstreamer', 'gst_base_dep'])
+gstrtp_dep = dependency('gstreamer-rtp-1.0', version : gst_req,
+  fallback : ['gstreamer', 'gst_rtp_dep'])
 gstnet_dep = dependency('gstreamer-net-1.0', version : gst_req,
   fallback : ['gstreamer', 'gst_net_dep'])
 gstcontroller_dep = dependency('gstreamer-controller-1.0', version : gst_req,
   fallback : ['gstreamer', 'gst_controller_dep'])
+gst_check_dep = dependency('gstreamer-check-1.0', version :  gst_req,
+  fallback : ['gstreamer', 'gst_check_dep'])
 
 configure_file(output : 'config.h', configuration : cdata)
 
 subdir('gst')
+subdir('tests')
