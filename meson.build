@@ -69,11 +69,11 @@ endforeach
 gst_package_name = get_option('package-name')
 if gst_package_name == ''
   if gst_version_nano == 0
-    gst_package_name = 'GStreamer Base Plug-ins source release'
+    gst_package_name = 'GStreamer RTP Plug-ins source release'
   elif gst_version_nano == 1
-    gst_package_name = 'GStreamer Base Plug-ins git'
+    gst_package_name = 'GStreamer RTP Plug-ins git'
   else
-    gst_package_name = 'GStreamer Base Plug-ins prerelease'
+    gst_package_name = 'GStreamer RTP Plug-ins prerelease'
   endif
 endif
 cdata.set_quoted('GST_PACKAGE_NAME', gst_package_name)
