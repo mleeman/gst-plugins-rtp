@@ -9,7 +9,7 @@ Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: GStreamer RTP Plugins 1.0
 Upstream-Contact: marc.leeman@gmail.com
-Source: https://gitlab.freedesktop.org/den_erpel/gst-plugins-rtp/
+Source: https://github.com/mleeman/gst-plugins-rtp/
 
 License: LGPL-2+
 
