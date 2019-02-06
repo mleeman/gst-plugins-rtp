@@ -364,7 +364,7 @@ gst_rtp_sink_class_init (GstRtpSinkClass * klass)
   gst_element_class_set_static_metadata (gstelement_class,
       "rtp_rtpsrc",
       "Generic/Bin/Sink",
-      "Simple Rtp sink", "Marc Leeman <marc.leeman@gmail.com>");
+      "Simple RTP sink", "Marc Leeman <marc.leeman@gmail.com>");
 }
 
 static void
