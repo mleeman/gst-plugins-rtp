@@ -501,6 +501,8 @@ gst_rtp_sink_init (GstRtpSink * self)
   gst_rtp_sink_setup_rtpbin (self);
 
   GST_OBJECT_FLAG_SET (GST_OBJECT (self), GST_ELEMENT_FLAG_SINK);
+  gst_bin_set_suppressed_flags (GST_BIN (self),
+      GST_ELEMENT_FLAG_SOURCE | GST_ELEMENT_FLAG_SINK);
 }
 
 static guint

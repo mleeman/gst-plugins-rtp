@@ -604,6 +604,8 @@ gst_rtp_src_init (GstRtpSrc * self)
   self->latency = DEFAULT_PROP_LATENCY;
 
   GST_OBJECT_FLAG_SET (GST_OBJECT (self), GST_ELEMENT_FLAG_SOURCE);
+  gst_bin_set_suppressed_flags (GST_BIN (self),
+      GST_ELEMENT_FLAG_SOURCE | GST_ELEMENT_FLAG_SINK);
 }
 
 static guint
