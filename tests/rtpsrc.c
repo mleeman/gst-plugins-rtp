@@ -5,7 +5,7 @@ GST_START_TEST (test_uri_to_properties)
   GstElement *rtpsrc;
   guint latency, ttl, ttl_mc;
 
-  rtpsrc = gst_element_factory_make ("rtpsrc", NULL);
+  rtpsrc = gst_element_factory_make ("rtp_rtpsrc", NULL);
 
   /* Sets properties to non-default values (make sure this stays in sync) */
   g_object_set (rtpsrc, "uri", "rtp://1.230.1.2?"

@@ -6,7 +6,7 @@ GST_START_TEST (test_uri_to_properties)
 
   gint bind_port, ttl, ttl_mc;
 
-  rtpsink = gst_element_factory_make ("rtpsink", NULL);
+  rtpsink = gst_element_factory_make ("rtp_rtpsink", NULL);
 
   /* Sets properties to non-default values (make sure this stays in sync) */
   g_object_set (rtpsink,
