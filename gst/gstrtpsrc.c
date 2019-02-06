@@ -340,8 +340,9 @@ gst_rtp_src_class_init (GstRtpSrcClass * klass)
 
   GST_DEBUG_CATEGORY_INIT (rtp_src_debug, "rtp_rtpsrc", 0, "GStreamer RTP src");
 
+
   gst_element_class_set_static_metadata (gstelement_class,
-      "rtp_rtpsrc",
+      "RTP Source element",
       "Generic/Bin/Src",
       "Simple RTP src", "Marc Leeman <marc.leeman@gmail.com>");
 }

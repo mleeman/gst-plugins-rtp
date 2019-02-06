@@ -357,7 +357,7 @@ gst_rtp_sink_class_init (GstRtpSinkClass * klass)
       gst_static_pad_template_get (&sink_template));
 
   gst_element_class_set_static_metadata (gstelement_class,
-      "rtp_rtpsrc",
+      "RTP Sink Element",
       "Generic/Bin/Sink",
       "Simple RTP sink", "Marc Leeman <marc.leeman@gmail.com>");
 }
