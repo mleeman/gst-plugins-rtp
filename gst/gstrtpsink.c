@@ -265,7 +265,8 @@ gst_rtp_sink_request_new_pad (GstElement * element,
 {
   GstRtpSink *self = GST_RTP_SINK (element);
   GstPad *pad = NULL;
-  gchar *nname = g_strdup_printf ("send_rtp_sink_%u", GST_ELEMENT(self)->numpads);
+  gchar *nname =
+      g_strdup_printf ("send_rtp_sink_%u", GST_ELEMENT (self)->numpads);
 
   if (self->rtpbin == NULL)
     return pad;
