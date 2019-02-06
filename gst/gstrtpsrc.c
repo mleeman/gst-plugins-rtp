@@ -37,9 +37,14 @@
 #include <config.h>
 #endif
 
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <gio/gio.h>
+
+#ifndef G_OS_WIN32
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#else
+#include <winsock2.h>
+#endif
 
 #include "gstrtpsrc.h"
 #include "gstrtpcaps.h"
