@@ -77,9 +77,6 @@ struct _GstRtpSrc
   GstElement *udpsrc_rtcp;
   GstElement *udpsink_rtcp;
 
-  /* Internal properties */
-  guint npads;
-
   GMutex lock;
 };
 
@@ -400,7 +397,6 @@ gst_rtp_src_rtpbin_pad_added_cb (GstElement * element, GstPad * pad,
   gst_caps_unref (caps);
 
   GST_RTP_SRC_LOCK (self);
-  /*name = g_strdup_printf("src_%u", self->npads++); */
   name = g_strdup_printf ("src_%u", 0);
   upad = gst_ghost_pad_new (name, pad);
   g_free (name);
@@ -537,11 +533,11 @@ gst_rtp_src_setup_elements (GstRtpSrc * self)
   g_object_set (G_OBJECT (self->udpsink_rtcp), "socket", socket, NULL);
 
   /* pads are all named */
-  name = g_strdup_printf ("recv_rtp_sink_%u", self->npads);
+  name = g_strdup_printf ("recv_rtp_sink_%u", GST_ELEMENT(self)->numpads);
   gst_element_link_pads (self->udpsrc_rtp, "src", self->rtpbin, name);
   g_free (name);
 
-  name = g_strdup_printf ("recv_rtcp_sink_%u", self->npads);
+  name = g_strdup_printf ("recv_rtcp_sink_%u", GST_ELEMENT(self)->numpads);
   gst_element_link_pads (self->udpsrc_rtcp, "src", self->rtpbin, name);
   g_free (name);
 
@@ -549,7 +545,7 @@ gst_rtp_src_setup_elements (GstRtpSrc * self)
   gst_element_sync_state_with_parent (self->udpsrc_rtp);
   gst_element_sync_state_with_parent (self->udpsink_rtcp);
 
-  name = g_strdup_printf ("send_rtcp_src_%u", self->npads);
+  name = g_strdup_printf ("send_rtcp_src_%u", GST_ELEMENT(self)->numpads);
   gst_element_link_pads (self->rtpbin, name, self->udpsink_rtcp, "sink");
   g_free (name);
 
@@ -601,7 +597,6 @@ gst_rtp_src_init (GstRtpSrc * self)
   self->udpsink_rtcp = NULL;
 
   self->uri = gst_uri_from_string (DEFAULT_PROP_URI);
-  self->npads = 0u;
   self->ttl = DEFAULT_PROP_TTL;
   self->ttl_mc = DEFAULT_PROP_TTL_MC;
   self->encoding_name = DEFAULT_PROP_ENCODING_NAME;

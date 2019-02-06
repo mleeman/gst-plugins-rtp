@@ -70,9 +70,6 @@ struct _GstRtpSink
   GstElement *udpsrc_rtcp;
   GstElement *udpsink_rtcp;
 
-  /* Internal properties */
-  guint npads;
-
   GMutex lock;
 };
 
@@ -240,15 +237,15 @@ gst_rtp_sink_setup_elements (GstRtpSink * self)
   gst_bin_add (GST_BIN (self), self->udpsrc_rtcp);
 
   /* pads are all named */
-  name = g_strdup_printf ("send_rtp_src_%u", self->npads);
+  name = g_strdup_printf ("send_rtp_src_%u", GST_ELEMENT(self)->numpads);
   gst_element_link_pads (self->rtpbin, name, self->udpsink_rtp, "sink");
   g_free (name);
 
-  name = g_strdup_printf ("send_rtcp_src_%u", self->npads);
+  name = g_strdup_printf ("send_rtcp_src_%u", GST_ELEMENT(self)->numpads);
   gst_element_link_pads (self->rtpbin, name, self->udpsink_rtcp, "sink");
   g_free (name);
 
-  name = g_strdup_printf ("recv_rtcp_sink_%u", self->npads);
+  name = g_strdup_printf ("recv_rtcp_sink_%u", GST_ELEMENT(self)->numpads);
   gst_element_link_pads (self->udpsrc_rtcp, "src", self->rtpbin, name);
   g_free (name);
 
@@ -268,7 +265,7 @@ gst_rtp_sink_request_new_pad (GstElement * element,
 {
   GstRtpSink *self = GST_RTP_SINK (element);
   GstPad *pad = NULL;
-  gchar *nname = g_strdup_printf ("send_rtp_sink_%u", self->npads);
+  gchar *nname = g_strdup_printf ("send_rtp_sink_%u", GST_ELEMENT(self)->numpads);
 
   if (self->rtpbin == NULL)
     return pad;
@@ -281,7 +278,6 @@ gst_rtp_sink_request_new_pad (GstElement * element,
   g_return_val_if_fail (pad != NULL, NULL);
   g_free (nname);
 
-  self->npads++;
   GST_RTP_SINK_UNLOCK (self);
 
   return pad;
@@ -300,7 +296,6 @@ gst_rtp_sink_release_pad (GstElement * element, GstPad * pad)
   gst_pad_set_active (pad, FALSE);
   gst_element_remove_pad (GST_ELEMENT (self), pad);
 
-  self->npads--;
   GST_RTP_SINK_UNLOCK (self);
 }
 
@@ -500,7 +495,6 @@ gst_rtp_sink_init (GstRtpSink * self)
   self->udpsink_rtcp = NULL;
 
   self->uri = gst_uri_from_string (DEFAULT_PROP_URI);
-  self->npads = 0u;
   self->ttl = DEFAULT_PROP_TTL;
   self->ttl_mc = DEFAULT_PROP_TTL_MC;
 
