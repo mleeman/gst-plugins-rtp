@@ -4,7 +4,7 @@ GST_START_TEST (test_uri_to_properties)
 {
   GstElement *rtpsink;
 
-  gint bind_port, ttl, ttl_mc;
+  gint ttl, ttl_mc;
 
   rtpsink = gst_element_factory_make ("rtp_rtpsink", NULL);
 
