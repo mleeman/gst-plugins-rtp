@@ -88,6 +88,7 @@ gst_plugins_rtp_args = ['-DHAVE_CONFIG_H']
 configinc = include_directories('.')
 plugins_install_dir = '@0@/gstreamer-1.0'.format(get_option('libdir'))
 
+gio_dep = dependency('gio-2.0', fallback: ['glib', 'libgio_dep'])
 # Mandatory GST deps
 gst_dep = dependency('gstreamer-1.0', version : gst_req,
   fallback : ['gstreamer', 'gst_dep'])

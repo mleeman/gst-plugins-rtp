@@ -13,7 +13,7 @@ gst_plugins_rtp_headers = [
 
 gstrtp = library('gstnrtp',
   gst_plugins_rtp_sources,
-  dependencies: [gst_dep, gstbase_dep, gstrtp_dep, gstnet_dep, gstcontroller_dep],
+  dependencies: [gio_dep, gst_dep, gstbase_dep, gstrtp_dep, gstnet_dep, gstcontroller_dep],
   include_directories: [configinc],
   install: true,
   c_args: gst_plugins_rtp_args,
