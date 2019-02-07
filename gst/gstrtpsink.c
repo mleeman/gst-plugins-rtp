@@ -213,11 +213,11 @@ gst_rtp_sink_setup_elements (GstRtpSink * self)
   gst_caps_unref (caps);
 
   addr = g_inet_address_new_from_string (gst_uri_get_host (self->uri));
-  if (g_inet_address_get_is_multicast (addr)){
+  if (g_inet_address_get_is_multicast (addr)) {
     g_object_set (self->udpsrc_rtcp, "address", gst_uri_get_host (self->uri),
         NULL);
   }
-  g_object_unref(addr);
+  g_object_unref (addr);
 
   gst_bin_add (GST_BIN (self), self->udpsrc_rtcp);
 
@@ -343,7 +343,8 @@ gst_rtp_sink_class_init (GstRtpSinkClass * klass)
           "Used for setting the multicast TTL parameter", 0, 255,
           DEFAULT_PROP_TTL_MC, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-  GST_DEBUG_CATEGORY_INIT (rtp_sink_debug, "rtp_rtpsink", 0, "GStreamer RTP sink");
+  GST_DEBUG_CATEGORY_INIT (rtp_sink_debug, "rtp_rtpsink", 0,
+      "GStreamer RTP sink");
 
   gst_element_class_add_pad_template (gstelement_class,
       gst_static_pad_template_get (&sink_template));
