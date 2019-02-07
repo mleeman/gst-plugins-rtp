@@ -39,13 +39,6 @@
 
 #include <gio/gio.h>
 
-#ifndef G_OS_WIN32
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#else
-#include <winsock2.h>
-#endif
-
 #include "gstrtpsrc.h"
 #include "gstrtpcaps.h"
 #include "gst_object_set_properties_from_uri_query.h"
@@ -408,22 +401,6 @@ gst_rtp_src_rtpbin_pad_added_cb (GstElement * element, GstPad * pad,
   GST_RTP_SRC_UNLOCK (self);
 }
 
-static gboolean
-gst_rtp_src_is_multicast (const gchar * ip_addr)
-{
-  in_addr_t host;
-  struct in6_addr host6;
-
-  /* IPv4 and IPv6 test */
-  if ((inet_pton (AF_INET6, ip_addr, &host6) == 1 &&
-          IN6_IS_ADDR_MULTICAST (host6.__in6_u.__u6_addr8)) ||
-      (inet_pton (AF_INET, ip_addr, &host) == 1 &&
-          (host = ntohl (host)) && IN_MULTICAST (host)))
-    return TRUE;
-  else
-    return FALSE;
-}
-
 static void
 gst_rtp_src_rtpbin_pad_removed_cb (GstElement * element, GstPad * pad,
     gpointer data)
@@ -460,6 +437,7 @@ gst_rtp_src_setup_elements (GstRtpSrc * self)
 {
   /*GstPad *pad; */
   GSocket *socket;
+  GInetAddress *addr;
   gchar *name;
   GstCaps *caps;
 
@@ -520,10 +498,13 @@ gst_rtp_src_setup_elements (GstRtpSrc * self)
       "port", gst_uri_get_port (self->uri) + 1,
       "auto-multicast", TRUE, "caps", caps, NULL);
   gst_caps_unref (caps);
-  if (gst_rtp_src_is_multicast (gst_uri_get_host (self->uri))) {
-    g_object_set (self->udpsrc_rtcp,
-        "address", gst_uri_get_host (self->uri), NULL);
+
+  addr = g_inet_address_new_from_string (gst_uri_get_host (self->uri));
+  if (g_inet_address_get_is_multicast (addr)){
+    g_object_set (self->udpsrc_rtcp, "address", gst_uri_get_host (self->uri),
+        NULL);
   }
+  g_object_unref(addr);
 
   g_object_set (self->udpsink_rtcp, "host", gst_uri_get_host (self->uri), "port", gst_uri_get_port (self->uri) + 1, "ttl", self->ttl, "ttl-mc", self->ttl_mc, "auto-multicast", FALSE,  /* Set false since we're reusing a socket */
       NULL);
