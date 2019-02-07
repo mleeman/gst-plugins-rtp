@@ -104,7 +104,7 @@ const static GstRTPPayloadInfo RTP_DYNAMIC_CAPS[] = {
   {0, "video", "VP8-DRAFT-IETF-01", 90000, NULL, 0},
   {0, "video", "VP9", 90000, NULL, 0},
   {0, "video", "VP9-DRAFT-IETF-01", 90000, NULL, 0},
-  {0, "video", "X-GST", 9000, NULL, 0},
+  {0, "media", "X-GST", 9000, NULL, 0},
   {-1, NULL, NULL, 0}
 };
 
