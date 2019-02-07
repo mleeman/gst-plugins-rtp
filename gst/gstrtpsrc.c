@@ -500,7 +500,7 @@ gst_rtp_src_setup_elements (GstRtpSrc * self)
   gst_bin_add (GST_BIN (self), self->udpsink_rtcp);
 
   /* no need to set address if unicast */
-  caps = gst_caps_from_string ("application/x-rtcp");
+  caps = gst_caps_new_empty_simple ("application/x-rtcp");
   g_object_set (self->udpsrc_rtcp,
       "port", gst_uri_get_port (self->uri) + 1,
       "auto-multicast", TRUE, "caps", caps, NULL);
