@@ -507,11 +507,11 @@ gst_rtp_src_setup_elements (GstRtpSrc * self)
   gst_caps_unref (caps);
 
   addr = g_inet_address_new_from_string (gst_uri_get_host (self->uri));
-  if (g_inet_address_get_is_multicast (addr)){
+  if (g_inet_address_get_is_multicast (addr)) {
     g_object_set (self->udpsrc_rtcp, "address", gst_uri_get_host (self->uri),
         NULL);
   }
-  g_object_unref(addr);
+  g_object_unref (addr);
 
   g_object_set (self->udpsink_rtcp, "host", gst_uri_get_host (self->uri), "port", gst_uri_get_port (self->uri) + 1, "ttl", self->ttl, "ttl-mc", self->ttl_mc, "auto-multicast", FALSE,  /* Set false since we're reusing a socket */
       NULL);
