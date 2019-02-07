@@ -38,9 +38,9 @@
 #endif
 
 #include <gio/gio.h>
+#include <gst/rtp/gstrtppayloads.h>
 
 #include "gstrtpsrc.h"
-#include "gstrtpcaps.h"
 #include "gst_object_set_properties_from_uri_query.h"
 
 GST_DEBUG_CATEGORY_STATIC (rtp_src_debug);
@@ -121,20 +121,18 @@ gst_rtp_src_rtpbin_request_pt_map_cb (GstElement * rtpbin, guint session_id,
   GstRtpSrc *self = GST_RTP_SRC (data);
   GstCaps *ret = NULL;
   const GstRTPPayloadInfo *p;
-  int i = 0;
 
   GST_DEBUG_OBJECT (self,
       "Requesting caps for session-id 0x%x and pt %u.", session_id, pt);
 
+  /* the encoding-name has more relevant information */
   if (self->encoding_name != NULL)
     goto dynamic;
 
-  i = 0;
-  while (RTP_STATIC_CAPS[i].payload_type >= 0) {
-    p = &(RTP_STATIC_CAPS[i++]);
-    if (p->payload_type == pt) {
+  if (!GST_RTP_PAYLOAD_IS_DYNAMIC (pt)) {
+    p = gst_rtp_payload_info_for_pt (pt);
+    if (p != NULL)
       goto beach;
-    }
   }
 
   GST_DEBUG_OBJECT (self, "Could not determine caps based on pt and"
@@ -142,27 +140,17 @@ gst_rtp_src_rtpbin_request_pt_map_cb (GstElement * rtpbin, guint session_id,
   self->encoding_name = g_strdup ("H264");
 
 dynamic:
-  i = 0;
-  while (RTP_DYNAMIC_CAPS[i].payload_type >= 0) {
-    p = &(RTP_DYNAMIC_CAPS[i++]);
-    if (g_strcmp0 (p->encoding_name, self->encoding_name) == 0) {
-      goto beach;
-    }
-  }
+  /* Unfortunately, the media needs to be passed in the function. Since
+   * it is not known, try for video if video not found. */
+  p = gst_rtp_payload_info_for_name ("video", self->encoding_name);
+  if (p == NULL)
+    p = gst_rtp_payload_info_for_name ("audio", self->encoding_name);
 
-  i = 0;
-  /* lookup the caps based on encoding-name */
-  while (RTP_STATIC_CAPS[i].payload_type >= 0) {
-    p = &(RTP_STATIC_CAPS[i++]);
-    if (g_strcmp0 (p->encoding_name, self->encoding_name) == 0) {
-      goto beach;
-    }
-  }
+  if (p != NULL)
+    goto beach;
 
   return NULL;
-
 beach:
-
   ret = gst_caps_new_simple ("application/x-rtp",
       "encoding-name", G_TYPE_STRING, p->encoding_name,
       "clock-rate", G_TYPE_INT, p->clock_rate,
