@@ -120,7 +120,7 @@ gst_rtp_src_rtpbin_request_pt_map_cb (GstElement * rtpbin, guint session_id,
 {
   GstRtpSrc *self = GST_RTP_SRC (data);
   GstCaps *ret = NULL;
-  const RtpCaps *p;
+  const GstRTPPayloadInfo *p;
   int i = 0;
 
   GST_DEBUG_OBJECT (self,
@@ -130,9 +130,9 @@ gst_rtp_src_rtpbin_request_pt_map_cb (GstElement * rtpbin, guint session_id,
     goto dynamic;
 
   i = 0;
-  while (RTP_STATIC_CAPS[i].pt >= 0) {
+  while (RTP_STATIC_CAPS[i].payload_type >= 0) {
     p = &(RTP_STATIC_CAPS[i++]);
-    if (p->pt == pt) {
+    if (p->payload_type == pt) {
       goto beach;
     }
   }
@@ -143,7 +143,7 @@ gst_rtp_src_rtpbin_request_pt_map_cb (GstElement * rtpbin, guint session_id,
 
 dynamic:
   i = 0;
-  while (RTP_DYNAMIC_CAPS[i].pt >= 0) {
+  while (RTP_DYNAMIC_CAPS[i].payload_type >= 0) {
     p = &(RTP_DYNAMIC_CAPS[i++]);
     if (g_strcmp0 (p->encoding_name, self->encoding_name) == 0) {
       goto beach;
@@ -152,7 +152,7 @@ dynamic:
 
   i = 0;
   /* lookup the caps based on encoding-name */
-  while (RTP_STATIC_CAPS[i].pt >= 0) {
+  while (RTP_STATIC_CAPS[i].payload_type >= 0) {
     p = &(RTP_STATIC_CAPS[i++]);
     if (g_strcmp0 (p->encoding_name, self->encoding_name) == 0) {
       goto beach;
