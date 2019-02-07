@@ -405,6 +405,12 @@ gst_rtp_sink_rtpbin_pad_added_cb (GstElement * element, GstPad * pad,
 
   /* TODO: funnel? */
   upad = gst_element_get_compatible_pad (self->udpsink_rtp, pad, NULL);
+  if (upad == NULL) {
+    GST_ERROR_OBJECT (self, "No compatible pad found to link pad.");
+    gst_caps_unref (caps);
+
+    return;
+  }
   gst_pad_link (pad, upad);
   gst_object_unref (upad);
 }
