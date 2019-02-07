@@ -168,23 +168,28 @@ gst_rtp_sink_setup_elements (GstRtpSink * self)
   GstCaps *caps;
 
   /* Should not be NULL */
-  g_return_if_fail (self->uri != NULL);
+  g_return_val_if_fail (self->uri != NULL, FALSE);
 
   self->udpsink_rtp = gst_element_factory_make ("udpsink", NULL);
-  self->udpsrc_rtcp = gst_element_factory_make ("udpsrc", NULL);
-  self->udpsink_rtcp = gst_element_factory_make ("udpsink", NULL);
-
-  if (self->udpsink_rtp == NULL)
+  if (self->udpsink_rtp == NULL) {
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
         ("%s", "udpsink_rtp element is not available"));
+    return FALSE;
+  }
 
-  if (self->udpsrc_rtcp == NULL)
+  self->udpsrc_rtcp = gst_element_factory_make ("udpsrc", NULL);
+  if (self->udpsrc_rtcp == NULL) {
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
         ("%s", "udpsrc_rtcp element is not available"));
+    return FALSE;
+  }
 
-  if (self->udpsink_rtcp == NULL)
+  self->udpsink_rtcp = gst_element_factory_make ("udpsink", NULL);
+  if (self->udpsink_rtcp == NULL) {
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
         ("%s", "udpsink_rtcp element is not available"));
+    return FALSE;
+  }
 
   /* Add elements as needed, since udpsrc/udpsink for RTCP share a socket,
    * not all at the same moment */
@@ -217,15 +222,15 @@ gst_rtp_sink_setup_elements (GstRtpSink * self)
   gst_bin_add (GST_BIN (self), self->udpsrc_rtcp);
 
   /* pads are all named */
-  name = g_strdup_printf ("send_rtp_src_%u", GST_ELEMENT(self)->numpads);
+  name = g_strdup_printf ("send_rtp_src_%u", GST_ELEMENT (self)->numpads);
   gst_element_link_pads (self->rtpbin, name, self->udpsink_rtp, "sink");
   g_free (name);
 
-  name = g_strdup_printf ("send_rtcp_src_%u", GST_ELEMENT(self)->numpads);
+  name = g_strdup_printf ("send_rtcp_src_%u", GST_ELEMENT (self)->numpads);
   gst_element_link_pads (self->rtpbin, name, self->udpsink_rtcp, "sink");
   g_free (name);
 
-  name = g_strdup_printf ("recv_rtcp_sink_%u", GST_ELEMENT(self)->numpads);
+  name = g_strdup_printf ("recv_rtcp_sink_%u", GST_ELEMENT (self)->numpads);
   gst_element_link_pads (self->udpsrc_rtcp, "src", self->rtpbin, name);
   g_free (name);
 
@@ -237,6 +242,7 @@ gst_rtp_sink_setup_elements (GstRtpSink * self)
 
   gst_element_sync_state_with_parent (self->udpsink_rtcp);
 
+  return TRUE;
 }
 
 static GstPad *
@@ -248,17 +254,22 @@ gst_rtp_sink_request_new_pad (GstElement * element,
   gchar *nname =
       g_strdup_printf ("send_rtp_sink_%u", GST_ELEMENT (self)->numpads);
 
-  if (self->rtpbin == NULL)
+  if (self->rtpbin == NULL) {
+    GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
+        ("%s", "rtpbin element is not available"));
     return pad;
+  }
 
   GST_RTP_SINK_LOCK (self);
   /* FIXME: this is probably not the correct location */
-  gst_rtp_sink_setup_elements (self);
+  if (gst_rtp_sink_setup_elements (self) == FALSE)
+    goto setup_failure;
 
   pad = gst_element_get_request_pad (self->rtpbin, nname);
   g_return_val_if_fail (pad != NULL, NULL);
   g_free (nname);
 
+setup_failure:
   GST_RTP_SINK_UNLOCK (self);
 
   return pad;
@@ -408,14 +419,15 @@ gst_rtp_sink_rtpbin_pad_removed_cb (GstElement * element, GstPad * pad,
       pad);
 }
 
-static void
+static gboolean
 gst_rtp_sink_setup_rtpbin (GstRtpSink * self)
 {
   self->rtpbin = gst_element_factory_make ("rtpbin", NULL);
-
-  if (self->rtpbin == NULL)
+  if (self->rtpbin == NULL) {
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
         ("%s", "rtpbin element is not available"));
+    return FALSE;
+  }
 
   /* Add rtpbin callbacks to monitor the operation of rtpbin */
   g_signal_connect (self->rtpbin, "element-added",
@@ -428,6 +440,8 @@ gst_rtp_sink_setup_rtpbin (GstRtpSink * self)
   gst_bin_add (GST_BIN (self), self->rtpbin);
 
   gst_element_sync_state_with_parent (self->rtpbin);
+
+  return TRUE;
 }
 
 static GstStateChangeReturn
@@ -479,7 +493,9 @@ gst_rtp_sink_init (GstRtpSink * self)
   self->ttl = DEFAULT_PROP_TTL;
   self->ttl_mc = DEFAULT_PROP_TTL_MC;
 
-  gst_rtp_sink_setup_rtpbin (self);
+  if (gst_rtp_sink_setup_rtpbin (self) == FALSE) {
+    return;
+  }
 
   GST_OBJECT_FLAG_SET (GST_OBJECT (self), GST_ELEMENT_FLAG_SINK);
   gst_bin_set_suppressed_flags (GST_BIN (self),

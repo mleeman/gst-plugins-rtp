@@ -432,7 +432,7 @@ gst_rtp_src_rtpbin_on_new_ssrc_cb (GstElement * rtpbin, guint session_id,
       session_id, ssrc);
 }
 
-static void
+static gboolean
 gst_rtp_src_setup_elements (GstRtpSrc * self)
 {
   /*GstPad *pad; */
@@ -442,28 +442,35 @@ gst_rtp_src_setup_elements (GstRtpSrc * self)
   GstCaps *caps;
 
   /* Should not be NULL */
-  g_return_if_fail (self->uri != NULL);
+  g_return_val_if_fail (self->uri != NULL, FALSE);
 
   self->rtpbin = gst_element_factory_make ("rtpbin", NULL);
-  self->udpsrc_rtp = gst_element_factory_make ("udpsrc", NULL);
-  self->udpsrc_rtcp = gst_element_factory_make ("udpsrc", NULL);
-  self->udpsink_rtcp = gst_element_factory_make ("udpsink", NULL);
-
-  if (self->rtpbin == NULL)
+  if (self->rtpbin == NULL) {
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
         ("%s", "rtpbin element is not available"));
+    return FALSE;
+  }
 
-  if (self->udpsrc_rtp == NULL)
+  self->udpsrc_rtp = gst_element_factory_make ("udpsrc", NULL);
+  if (self->udpsrc_rtp == NULL) {
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
         ("%s", "udpsrc_rtp element is not available"));
+    return FALSE;
+  }
 
-  if (self->udpsrc_rtcp == NULL)
+  self->udpsrc_rtcp = gst_element_factory_make ("udpsrc", NULL);
+  if (self->udpsrc_rtcp == NULL) {
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
         ("%s", "udpsrc_rtcp element is not available"));
+    return FALSE;
+  }
 
-  if (self->udpsink_rtcp == NULL)
+  self->udpsink_rtcp = gst_element_factory_make ("udpsink", NULL);
+  if (self->udpsink_rtcp == NULL) {
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
         ("%s", "udpsink_rtcp element is not available"));
+    return FALSE;
+  }
 
   /* Add rtpbin callbacks to monitor the operation of rtpbin */
   g_signal_connect (self->rtpbin, "element-added",
@@ -515,11 +522,11 @@ gst_rtp_src_setup_elements (GstRtpSrc * self)
   g_object_set (G_OBJECT (self->udpsink_rtcp), "socket", socket, NULL);
 
   /* pads are all named */
-  name = g_strdup_printf ("recv_rtp_sink_%u", GST_ELEMENT(self)->numpads);
+  name = g_strdup_printf ("recv_rtp_sink_%u", GST_ELEMENT (self)->numpads);
   gst_element_link_pads (self->udpsrc_rtp, "src", self->rtpbin, name);
   g_free (name);
 
-  name = g_strdup_printf ("recv_rtcp_sink_%u", GST_ELEMENT(self)->numpads);
+  name = g_strdup_printf ("recv_rtcp_sink_%u", GST_ELEMENT (self)->numpads);
   gst_element_link_pads (self->udpsrc_rtcp, "src", self->rtpbin, name);
   g_free (name);
 
@@ -527,11 +534,13 @@ gst_rtp_src_setup_elements (GstRtpSrc * self)
   gst_element_sync_state_with_parent (self->udpsrc_rtp);
   gst_element_sync_state_with_parent (self->udpsink_rtcp);
 
-  name = g_strdup_printf ("send_rtcp_src_%u", GST_ELEMENT(self)->numpads);
+  name = g_strdup_printf ("send_rtcp_src_%u", GST_ELEMENT (self)->numpads);
   gst_element_link_pads (self->rtpbin, name, self->udpsink_rtcp, "sink");
   g_free (name);
 
   gst_element_sync_state_with_parent (self->udpsrc_rtcp);
+
+  return TRUE;
 }
 
 static GstStateChangeReturn
@@ -546,7 +555,8 @@ gst_rtp_src_change_state (GstElement * element, GstStateChange transition)
 
   switch (transition) {
     case GST_STATE_CHANGE_NULL_TO_READY:
-      gst_rtp_src_setup_elements (self);
+      if (gst_rtp_src_setup_elements (self) == FALSE)
+        return GST_STATE_CHANGE_FAILURE;
       break;
     case GST_STATE_CHANGE_READY_TO_PAUSED:
       break;
