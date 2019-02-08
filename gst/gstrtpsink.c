@@ -343,7 +343,7 @@ gst_rtp_sink_class_init (GstRtpSinkClass * klass)
           "Used for setting the multicast TTL parameter", 0, 255,
           DEFAULT_PROP_TTL_MC, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-  GST_DEBUG_CATEGORY_INIT (rtp_sink_debug, "rtp_rtpsink", 0,
+  GST_DEBUG_CATEGORY_INIT (rtp_sink_debug, "nrtp_rtpsink", 0,
       "GStreamer RTP sink");
 
   gst_element_class_add_pad_template (gstelement_class,

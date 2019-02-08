@@ -12,10 +12,10 @@ plugin_init (GstPlugin * plugin)
 
   gboolean ret = FALSE;
 
-  ret |= gst_element_register (plugin, "rtp_rtpsrc",
+  ret |= gst_element_register (plugin, "nrtp_rtpsrc",
       GST_RANK_PRIMARY + 1, GST_TYPE_RTP_SRC);
 
-  ret |= gst_element_register (plugin, "rtp_rtpsink",
+  ret |= gst_element_register (plugin, "nrtp_rtpsink",
       GST_RANK_PRIMARY + 1, GST_TYPE_RTP_SINK);
 
   return ret;
