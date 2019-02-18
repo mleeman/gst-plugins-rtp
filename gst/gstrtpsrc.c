@@ -52,27 +52,6 @@ GST_DEBUG_CATEGORY_STATIC (rtp_src_debug);
 
 #define DEFAULT_PROP_URI              "rtp://0.0.0.0:5004"
 
-struct _GstRtpSrc
-{
-  GstBin parent_instance;
-
-  /* Properties */
-  GstUri *uri;
-  gint ttl;
-  gint ttl_mc;
-  gint latency;
-  gchar *encoding_name;
-  guint latency_ms;
-
-  /* Internal elements */
-  GstElement *rtpbin;
-  GstElement *udpsrc_rtp;
-  GstElement *udpsrc_rtcp;
-  GstElement *udpsink_rtcp;
-
-  GMutex lock;
-};
-
 enum
 {
   PROP_0,

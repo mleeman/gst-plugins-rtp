@@ -48,24 +48,6 @@ GST_DEBUG_CATEGORY_STATIC (rtp_sink_debug);
 #define DEFAULT_PROP_TTL              64
 #define DEFAULT_PROP_TTL_MC           1
 
-struct _GstRtpSink
-{
-  GstBin parent_instance;
-
-  /* Properties */
-  GstUri *uri;
-  gint ttl;
-  gint ttl_mc;
-
-  /* Internal elements */
-  GstElement *rtpbin;
-  GstElement *udpsink_rtp;
-  GstElement *udpsrc_rtcp;
-  GstElement *udpsink_rtcp;
-
-  GMutex lock;
-};
-
 enum
 {
   PROP_0,
