@@ -558,8 +558,10 @@ gst_rtp_src_change_state (GstElement * element, GstStateChange transition)
 
   switch (transition) {
     case GST_STATE_CHANGE_READY_TO_PAUSED:
+      ret = GST_STATE_CHANGE_NO_PREROLL;
       break;
-    case GST_STATE_CHANGE_PAUSED_TO_READY:
+    case GST_STATE_CHANGE_PLAYING_TO_PAUSED:
+      ret = GST_STATE_CHANGE_NO_PREROLL;
       break;
     default:
       break;
