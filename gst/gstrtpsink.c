@@ -463,7 +463,6 @@ gst_rtp_sink_change_state (GstElement * element, GstStateChange transition)
 
   switch (transition) {
     case GST_STATE_CHANGE_NULL_TO_READY:
-      /*gst_rtp_sink_setup_elements(self); */
       break;
     case GST_STATE_CHANGE_READY_TO_PAUSED:
       break;
