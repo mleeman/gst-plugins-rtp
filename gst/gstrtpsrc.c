@@ -156,6 +156,8 @@ beach:
       "clock-rate", G_TYPE_INT, p->clock_rate,
       "media", G_TYPE_STRING, p->media, NULL);
 
+  GST_DEBUG_OBJECT (self, "Decided on caps %" GST_PTR_FORMAT, ret);
+
   return ret;
 }
 
