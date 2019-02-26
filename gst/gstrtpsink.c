@@ -500,9 +500,8 @@ gst_rtp_sink_init (GstRtpSink * self)
   self->ttl = DEFAULT_PROP_TTL;
   self->ttl_mc = DEFAULT_PROP_TTL_MC;
 
-  if (gst_rtp_sink_setup_rtpbin (self) == FALSE) {
+  if (gst_rtp_sink_setup_rtpbin (self) == FALSE)
     return;
-  }
 
   GST_OBJECT_FLAG_SET (GST_OBJECT (self), GST_ELEMENT_FLAG_SINK);
   gst_bin_set_suppressed_flags (GST_BIN (self),
