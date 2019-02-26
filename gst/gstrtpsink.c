@@ -170,6 +170,10 @@ gst_rtp_sink_setup_elements (GstRtpSink * self)
   /* Should not be NULL */
   g_return_val_if_fail (self->uri != NULL, FALSE);
 
+  /* already configured */
+  if (self->udpsink_rtp != NULL)
+    return TRUE;
+
   self->udpsink_rtp = gst_element_factory_make ("udpsink", NULL);
   if (self->udpsink_rtp == NULL) {
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
