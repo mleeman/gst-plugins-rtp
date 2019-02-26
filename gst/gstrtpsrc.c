@@ -548,8 +548,6 @@ gst_rtp_src_change_state (GstElement * element, GstStateChange transition)
       if (gst_rtp_src_setup_elements (self) == FALSE)
         return GST_STATE_CHANGE_FAILURE;
       break;
-    case GST_STATE_CHANGE_READY_TO_PAUSED:
-      break;
     default:
       break;
   }
