@@ -381,7 +381,7 @@ gst_rtp_src_rtpbin_pad_added_cb (GstElement * element, GstPad * pad,
   gst_caps_unref (caps);
 
   GST_RTP_SRC_LOCK (self);
-  name = g_strdup_printf ("src_%u", 0);
+  name = g_strdup_printf ("src_%u", GST_ELEMENT (self)->numpads);
   upad = gst_ghost_pad_new (name, pad);
   g_free (name);
 
