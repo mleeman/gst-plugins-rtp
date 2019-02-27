@@ -245,15 +245,15 @@ gst_rtp_sink_setup_elements (GstRtpSink * self)
     gst_element_link (self->funnel_rtp, self->udpsink_rtp);
     gst_element_link (self->funnel_rtcp, self->udpsink_rtcp);
 
-  gst_element_sync_state_with_parent (self->funnel_rtp);
-  gst_element_sync_state_with_parent (self->funnel_rtcp);
-  gst_element_sync_state_with_parent (self->udpsink_rtp);
-  gst_element_sync_state_with_parent (self->udpsrc_rtcp);
+    gst_element_sync_state_with_parent (self->funnel_rtp);
+    gst_element_sync_state_with_parent (self->funnel_rtcp);
+    gst_element_sync_state_with_parent (self->udpsink_rtp);
+    gst_element_sync_state_with_parent (self->udpsrc_rtcp);
 
-  g_object_get (G_OBJECT (self->udpsrc_rtcp), "used-socket", &socket, NULL);
-  g_object_set (G_OBJECT (self->udpsink_rtcp), "socket", socket, NULL);
+    g_object_get (G_OBJECT (self->udpsrc_rtcp), "used-socket", &socket, NULL);
+    g_object_set (G_OBJECT (self->udpsink_rtcp), "socket", socket, NULL);
 
-  gst_element_sync_state_with_parent (self->udpsink_rtcp);
+    gst_element_sync_state_with_parent (self->udpsink_rtcp);
 
   }
 
@@ -286,7 +286,6 @@ gst_rtp_sink_request_new_pad (GstElement * element,
     return pad;
   }
 
-  /* FIXME: this is probably not the correct location */
   if (gst_rtp_sink_setup_elements (self) == FALSE)
     return NULL;
 
@@ -518,6 +517,7 @@ gst_rtp_sink_init (GstRtpSink * self)
 {
   self->rtpbin = NULL;
   self->funnel_rtp = NULL;
+  self->funnel_rtcp = NULL;
   self->udpsink_rtp = NULL;
   self->udpsrc_rtcp = NULL;
   self->udpsink_rtcp = NULL;
