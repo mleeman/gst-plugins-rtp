@@ -132,7 +132,7 @@ gst_rtp_src_rtpbin_request_pt_map_cb (GstElement * rtpbin, guint session_id,
   if (!GST_RTP_PAYLOAD_IS_DYNAMIC (pt)) {
     p = gst_rtp_payload_info_for_pt (pt);
     if (p != NULL)
-      goto beach;
+      return NULL;
   }
 
   GST_DEBUG_OBJECT (self, "Could not determine caps based on pt and"
@@ -146,19 +146,18 @@ dynamic:
   if (p == NULL)
     p = gst_rtp_payload_info_for_name ("audio", self->encoding_name);
 
-  if (p != NULL)
-    goto beach;
+  if (p != NULL) {
+    ret = gst_caps_new_simple ("application/x-rtp",
+        "encoding-name", G_TYPE_STRING, p->encoding_name,
+        "clock-rate", G_TYPE_INT, p->clock_rate,
+        "media", G_TYPE_STRING, p->media, NULL);
+
+    GST_DEBUG_OBJECT (self, "Decided on caps %" GST_PTR_FORMAT, ret);
+
+    return ret;
+  }
 
   return NULL;
-beach:
-  ret = gst_caps_new_simple ("application/x-rtp",
-      "encoding-name", G_TYPE_STRING, p->encoding_name,
-      "clock-rate", G_TYPE_INT, p->clock_rate,
-      "media", G_TYPE_STRING, p->media, NULL);
-
-  GST_DEBUG_OBJECT (self, "Decided on caps %" GST_PTR_FORMAT, ret);
-
-  return ret;
 }
 
 static void
