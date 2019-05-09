@@ -39,7 +39,7 @@
 #include <gio/gio.h>
 
 #include "gstrtpsink.h"
-#include "gst_object_set_properties_from_uri_query.h"
+#include "gstrtp-utils.h"
 
 GST_DEBUG_CATEGORY_STATIC (rtp_sink_debug);
 #define GST_CAT_DEFAULT rtp_sink_debug
@@ -110,7 +110,7 @@ gst_rtp_sink_set_property (GObject * object, guint prop_id,
       if (self->uri)
         gst_uri_unref (self->uri);
       self->uri = gst_uri_from_string (g_value_get_string (value));
-      gst_object_set_properties_from_uri_query (G_OBJECT (self), self->uri);
+      gst_rtp_utils_set_properties_from_uri_query (G_OBJECT (self), self->uri);
       break;
     case PROP_TTL:
       self->ttl = g_value_get_int (value);

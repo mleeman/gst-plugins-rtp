@@ -2,13 +2,13 @@ gst_plugins_rtp_sources = [
   'plugin.c',
   'gstrtpsink.c',
   'gstrtpsrc.c',
-  'gst_object_set_properties_from_uri_query.c',
+  'gstrtp-utils.c',
 ]
 
 gst_plugins_rtp_headers = [
   'gstrtpsink.h',
   'gstrtpsrc.h',
-  'gst_object_set_properties_from_uri_query.h',
+  'gstrtp-utils.h',
 ]
 
 gstrtp = library('gstnrtp',
