@@ -111,10 +111,12 @@ gst_rtp_sink_set_property (GObject * object, guint prop_id,
 
   switch (prop_id) {
     case PROP_URI:
+      GST_RTP_SINK_LOCK (object);
       if (self->uri)
         gst_uri_unref (self->uri);
       self->uri = gst_uri_from_string (g_value_get_string (value));
       gst_rtp_utils_set_properties_from_uri_query (G_OBJECT (self), self->uri);
+      GST_RTP_SINK_UNLOCK (object);
       break;
     case PROP_TTL:
       self->ttl = g_value_get_int (value);
@@ -136,10 +138,12 @@ gst_rtp_sink_get_property (GObject * object, guint prop_id,
 
   switch (prop_id) {
     case PROP_URI:
+      GST_RTP_SINK_LOCK (object);
       if (self->uri)
         g_value_take_string (value, gst_uri_to_string (self->uri));
       else
         g_value_set_string (value, NULL);
+      GST_RTP_SINK_UNLOCK (object);
       break;
     case PROP_TTL:
       g_value_set_int (value, self->ttl);
@@ -161,6 +165,7 @@ gst_rtp_sink_finalize (GObject * gobject)
   if (self->uri)
     gst_uri_unref (self->uri);
 
+  g_mutex_clear (&self->lock);
   G_OBJECT_CLASS (parent_class)->finalize (gobject);
 }
 
@@ -533,6 +538,8 @@ gst_rtp_sink_init (GstRtpSink * self)
   GST_OBJECT_FLAG_SET (GST_OBJECT (self), GST_ELEMENT_FLAG_SINK);
   gst_bin_set_suppressed_flags (GST_BIN (self),
       GST_ELEMENT_FLAG_SOURCE | GST_ELEMENT_FLAG_SINK);
+
+  g_mutex_init (&self->lock);
 }
 
 static guint
