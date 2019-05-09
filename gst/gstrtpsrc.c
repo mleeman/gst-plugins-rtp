@@ -27,6 +27,10 @@
  * retaining the timing information and providing enough information to
  * reconstruct the correct timing domain by the receiver.
  *
+ * The RTP data port should be even, while the RTCP port should be
+ * odd. The URI that is entered defines the data port, the RTCP port will
+ * be allocated to the next port.
+ *
  * This element hooks up the correct sockets to support both RTP as the
  * accompanying RTCP layer.
  *
