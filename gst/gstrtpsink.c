@@ -182,7 +182,7 @@ gst_rtp_sink_setup_elements (GstRtpSink * self)
   /*GstPad *pad; */
   GSocket *socket;
   GInetAddress *addr;
-  gchar *name;
+  gchar name[48];
   GstCaps *caps;
 
   /* Should not be NULL */
@@ -274,17 +274,14 @@ gst_rtp_sink_setup_elements (GstRtpSink * self)
   }
 
   /* pads are all named */
-  name = g_strdup_printf ("send_rtp_src_%u", GST_ELEMENT (self)->numpads);
+  g_snprintf (name, 48, "send_rtp_src_%u", GST_ELEMENT (self)->numpads);
   gst_element_link_pads (self->rtpbin, name, self->funnel_rtp, "sink_%u");
-  g_free (name);
 
-  name = g_strdup_printf ("send_rtcp_src_%u", GST_ELEMENT (self)->numpads);
+  g_snprintf (name, 48, "send_rtcp_src_%u", GST_ELEMENT (self)->numpads);
   gst_element_link_pads (self->rtpbin, name, self->funnel_rtcp, "sink_%u");
-  g_free (name);
 
-  name = g_strdup_printf ("recv_rtcp_sink_%u", GST_ELEMENT (self)->numpads);
+  g_snprintf (name, 48, "recv_rtcp_sink_%u", GST_ELEMENT (self)->numpads);
   gst_element_link_pads (self->udpsrc_rtcp, "src", self->rtpbin, name);
-  g_free (name);
 
   return TRUE;
 }
