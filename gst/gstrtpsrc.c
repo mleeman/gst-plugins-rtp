@@ -504,8 +504,7 @@ gst_rtp_src_setup_elements (GstRtpSrc * self)
   /* no need to set address if unicast */
   caps = gst_caps_new_empty_simple ("application/x-rtcp");
   g_object_set (self->udpsrc_rtcp,
-      "port", gst_uri_get_port (self->uri) + 1,
-      "auto-multicast", TRUE, "caps", caps, NULL);
+      "port", gst_uri_get_port (self->uri) + 1, "caps", caps, NULL);
   gst_caps_unref (caps);
 
   addr = g_inet_address_new_from_string (gst_uri_get_host (self->uri));
