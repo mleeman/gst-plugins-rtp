@@ -355,8 +355,9 @@ gst_rtp_sink_class_init (GstRtpSinkClass * klass)
    * Since: 1.14.4.1
    */
   g_object_class_install_property (gobject_class, PROP_URI,
-      g_param_spec_string ("uri", "URI", "URI to send data on",
-          DEFAULT_PROP_URI, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+      g_param_spec_string ("uri", "URI",
+          "URI in the form of rtp://host:port?query", DEFAULT_PROP_URI,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /**
    * GstRtpSink:ttl:
