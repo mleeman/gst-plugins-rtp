@@ -449,8 +449,7 @@ gst_rtp_sink_rtpbin_pad_added_cb (GstElement * element, GstPad * pad,
 
     return;
   }
-  GST_INFO_OBJECT (self,
-      "Linking with pad %" GST_PTR_FORMAT ".", upad);
+  GST_INFO_OBJECT (self, "Linking with pad %" GST_PTR_FORMAT ".", upad);
   gst_pad_link (pad, upad);
   gst_object_unref (upad);
 }
