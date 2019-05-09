@@ -188,8 +188,7 @@ gst_rtp_src_set_property (GObject * object, guint prop_id,
       self->ttl_mc = g_value_get_int (value);
       break;
     case PROP_ENCODING_NAME:
-      if (self->encoding_name)
-        g_free (self->encoding_name);
+      g_free (self->encoding_name);
       self->encoding_name = g_value_dup_string (value);
       if (self->udpsrc_rtp) {
         caps = gst_rtp_src_rtpbin_request_pt_map_cb (NULL, 0, 96, self);
