@@ -45,8 +45,8 @@
 #include "gstrtpsink.h"
 #include "gstrtp-utils.h"
 
-GST_DEBUG_CATEGORY_STATIC (rtp_sink_debug);
-#define GST_CAT_DEFAULT rtp_sink_debug
+GST_DEBUG_CATEGORY_STATIC (gst_rtp_sink_debug);
+#define GST_CAT_DEFAULT gst_rtp_sink_debug
 
 #define DEFAULT_PROP_URI              "rtp://0.0.0.0:5004"
 #define DEFAULT_PROP_TTL              64
@@ -88,8 +88,8 @@ static void gst_rtp_sink_uri_handler_init (gpointer g_iface,
 
 #define gst_rtp_sink_parent_class parent_class
 G_DEFINE_TYPE_WITH_CODE (GstRtpSink, gst_rtp_sink, GST_TYPE_BIN,
-    G_IMPLEMENT_INTERFACE (GST_TYPE_URI_HANDLER,
-        gst_rtp_sink_uri_handler_init));
+    G_IMPLEMENT_INTERFACE (GST_TYPE_URI_HANDLER, gst_rtp_sink_uri_handler_init);
+    GST_DEBUG_CATEGORY_INIT (gst_rtp_sink_debug, "nrtp_rtpsink", 0, "RTP Sink"));
 
 #define GST_RTP_SINK_GET_LOCK(obj) (&((GstRtpSink*)(obj))->lock)
 #define GST_RTP_SINK_LOCK(obj) (g_mutex_lock (GST_RTP_SINK_GET_LOCK(obj)))
@@ -370,9 +370,6 @@ gst_rtp_sink_class_init (GstRtpSinkClass * klass)
       g_param_spec_int ("ttl-mc", "Multicast TTL",
           "Used for setting the multicast TTL parameter", 0, 255,
           DEFAULT_PROP_TTL_MC, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-  GST_DEBUG_CATEGORY_INIT (rtp_sink_debug, "nrtp_rtpsink", 0,
-      "GStreamer RTP sink");
 
   gst_element_class_add_pad_template (gstelement_class,
       gst_static_pad_template_get (&sink_template));

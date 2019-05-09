@@ -47,8 +47,9 @@
 #include "gstrtpsrc.h"
 #include "gstrtp-utils.h"
 
-GST_DEBUG_CATEGORY_STATIC (rtp_src_debug);
-#define GST_CAT_DEFAULT rtp_src_debug
+GST_DEBUG_CATEGORY_STATIC (gst_rtp_src_debug);
+#define GST_CAT_DEFAULT gst_rtp_src_debug
+
 #define DEFAULT_PROP_TTL              64
 #define DEFAULT_PROP_TTL_MC           1
 #define DEFAULT_PROP_ENCODING_NAME    NULL
@@ -95,7 +96,8 @@ static void gst_rtp_src_uri_handler_init (gpointer g_iface,
 
 #define gst_rtp_src_parent_class parent_class
 G_DEFINE_TYPE_WITH_CODE (GstRtpSrc, gst_rtp_src, GST_TYPE_BIN,
-    G_IMPLEMENT_INTERFACE (GST_TYPE_URI_HANDLER, gst_rtp_src_uri_handler_init));
+    G_IMPLEMENT_INTERFACE (GST_TYPE_URI_HANDLER, gst_rtp_src_uri_handler_init);
+    GST_DEBUG_CATEGORY_INIT (gst_rtp_src_debug, "nrtp_rtpsrc", 0, "RTP Source"));
 
 #define GST_RTP_SRC_GET_LOCK(obj) (&((GstRtpSrc*)(obj))->lock)
 #define GST_RTP_SRC_LOCK(obj) (g_mutex_lock (GST_RTP_SRC_GET_LOCK(obj)))
@@ -323,10 +325,6 @@ gst_rtp_src_class_init (GstRtpSrcClass * klass)
 
   gst_element_class_add_pad_template (gstelement_class,
       gst_static_pad_template_get (&src_template));
-
-  GST_DEBUG_CATEGORY_INIT (rtp_src_debug, "nrtp_rtpsrc", 0,
-      "GStreamer RTP src");
-
 
   gst_element_class_set_static_metadata (gstelement_class,
       "RTP Source element",
