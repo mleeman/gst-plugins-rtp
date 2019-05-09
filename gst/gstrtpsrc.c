@@ -412,7 +412,7 @@ gst_rtp_src_rtpbin_on_ssrc_collision_cb (GstElement * rtpbin, guint session_id,
 {
   GstRtpSrc *self = GST_RTP_SRC (data);
 
-  GST_WARNING_OBJECT (self,
+  GST_INFO_OBJECT (self,
       "Dectected an SSRC collision: session-id 0x%x, ssrc 0x%x.", session_id,
       ssrc);
 }
