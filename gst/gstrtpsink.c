@@ -299,7 +299,7 @@ gst_rtp_sink_request_new_pad (GstElement * element,
   if (self->rtpbin == NULL) {
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
         ("%s", "rtpbin element is not available"));
-    return pad;
+    return NULL;
   }
 
   if (gst_rtp_sink_setup_elements (self) == FALSE)
