@@ -163,6 +163,8 @@ dynamic:
     return ret;
   }
 
+  GST_DEBUG_OBJECT (self, "Could not determine caps based on pt and"
+      " the encoding-name was not set.");
   return NULL;
 }
 
@@ -179,6 +181,10 @@ gst_rtp_src_set_property (GObject * object, guint prop_id,
       if (self->uri)
         gst_uri_unref (self->uri);
       self->uri = gst_uri_from_string (g_value_get_string (value));
+      if (gst_uri_get_port (self->uri) % 2)
+        GST_WARNING_OBJECT (self,
+            "Port %u is not even, this is not standard (see RFC 3550).",
+            gst_uri_get_port (self->uri));
       gst_rtp_utils_set_properties_from_uri_query (G_OBJECT (self), self->uri);
       GST_RTP_SRC_UNLOCK (object);
       break;
