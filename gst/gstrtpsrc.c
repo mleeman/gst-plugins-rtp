@@ -125,35 +125,28 @@ gst_rtp_src_rtpbin_request_pt_map_cb (GstElement * rtpbin, guint session_id,
     guint pt, gpointer data)
 {
   GstRtpSrc *self = GST_RTP_SRC (data);
-  GstCaps *ret = NULL;
-  const GstRTPPayloadInfo *p;
+  const GstRTPPayloadInfo *p = NULL;
 
   GST_DEBUG_OBJECT (self,
       "Requesting caps for session-id 0x%x and pt %u.", session_id, pt);
 
   /* the encoding-name has more relevant information */
-  if (self->encoding_name != NULL)
-    goto dynamic;
+  if (self->encoding_name != NULL) {
+    /* Unfortunately, the media needs to be passed in the function. Since
+     * it is not known, try for video if video not found. */
+    p = gst_rtp_payload_info_for_name ("video", self->encoding_name);
+    if (p == NULL)
+      p = gst_rtp_payload_info_for_name ("audio", self->encoding_name);
 
-  if (!GST_RTP_PAYLOAD_IS_DYNAMIC (pt)) {
-    p = gst_rtp_payload_info_for_pt (pt);
-    if (p != NULL)
-      return NULL;
   }
 
-  GST_DEBUG_OBJECT (self, "Could not determine caps based on pt and"
-      " the encoding-name was not set. Assuming H.264");
-  self->encoding_name = g_strdup ("H264");
-
-dynamic:
-  /* Unfortunately, the media needs to be passed in the function. Since
-   * it is not known, try for video if video not found. */
-  p = gst_rtp_payload_info_for_name ("video", self->encoding_name);
-  if (p == NULL)
-    p = gst_rtp_payload_info_for_name ("audio", self->encoding_name);
+  /* Static payload types, this is a simple lookup */
+  if (!GST_RTP_PAYLOAD_IS_DYNAMIC (pt)) {
+    p = gst_rtp_payload_info_for_pt (pt);
+  }
 
   if (p != NULL) {
-    ret = gst_caps_new_simple ("application/x-rtp",
+    GstCaps *ret = gst_caps_new_simple ("application/x-rtp",
         "encoding-name", G_TYPE_STRING, p->encoding_name,
         "clock-rate", G_TYPE_INT, p->clock_rate,
         "media", G_TYPE_STRING, p->media, NULL);
