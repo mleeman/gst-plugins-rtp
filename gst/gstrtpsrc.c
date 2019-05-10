@@ -42,6 +42,7 @@
 #endif
 
 #include <gio/gio.h>
+#include <gst/net/net.h>
 #include <gst/rtp/gstrtppayloads.h>
 
 #include "gstrtpsrc.h"
@@ -71,9 +72,13 @@ struct _GstRtpSrc
 
   /* Internal elements */
   GstElement *rtpbin;
-  GstElement *udpsrc_rtp;
-  GstElement *udpsrc_rtcp;
-  GstElement *udpsink_rtcp;
+  GstElement *rtp_src;
+  GstElement *rtcp_src;
+  GstElement *rtcp_sink;
+
+  gulong rtcp_recv_probe;
+  gulong rtcp_send_probe;
+  GSocketAddress *rtcp_send_addr;
 
   GMutex lock;
 };
@@ -190,9 +195,9 @@ gst_rtp_src_set_property (GObject * object, guint prop_id,
     case PROP_ENCODING_NAME:
       g_free (self->encoding_name);
       self->encoding_name = g_value_dup_string (value);
-      if (self->udpsrc_rtp) {
+      if (self->rtp_src) {
         caps = gst_rtp_src_rtpbin_request_pt_map_cb (NULL, 0, 96, self);
-        g_object_set (G_OBJECT (self->udpsrc_rtp), "caps", caps, NULL);
+        g_object_set (G_OBJECT (self->rtp_src), "caps", caps, NULL);
         gst_caps_unref (caps);
       }
       break;
@@ -427,14 +432,85 @@ gst_rtp_src_rtpbin_on_new_ssrc_cb (GstElement * rtpbin, guint session_id,
       session_id, ssrc);
 }
 
+static GstPadProbeReturn
+gst_rtp_src_on_recv_rtcp (GstPad * pad, GstPadProbeInfo * info,
+    gpointer user_data)
+{
+  GstRtpSrc *self = GST_RTP_SRC (user_data);
+  GstBuffer *buffer;
+  GstNetAddressMeta *meta;
+
+  if (info->type == GST_PAD_PROBE_TYPE_BUFFER_LIST) {
+    GstBufferList *buffer_list = info->data;
+    buffer = gst_buffer_list_get (buffer_list, 0);
+  } else {
+    buffer = info->data;
+  }
+
+  meta = gst_buffer_get_net_address_meta (buffer);
+
+  GST_OBJECT_LOCK (self);
+  g_clear_object (&self->rtcp_send_addr);
+  self->rtcp_send_addr = g_object_ref (meta->addr);
+  GST_OBJECT_UNLOCK (self);
+
+  return GST_PAD_PROBE_OK;
+}
+
+static inline void
+gst_rtp_src_attach_net_address_meta (GstRtpSrc * self, GstBuffer * buffer)
+{
+  GST_OBJECT_LOCK (self);
+  if (self->rtcp_send_addr)
+    gst_buffer_add_net_address_meta (buffer, self->rtcp_send_addr);
+  GST_OBJECT_UNLOCK (self);
+}
+
+static GstPadProbeReturn
+gst_rtp_src_on_send_rtcp (GstPad * pad, GstPadProbeInfo * info,
+    gpointer user_data)
+{
+  GstRtpSrc *self = GST_RTP_SRC (user_data);
+
+  if (info->type == GST_PAD_PROBE_TYPE_BUFFER_LIST) {
+    GstBufferList *buffer_list = info->data;
+    GstBuffer *buffer;
+    gint i;
+
+    info->data = buffer_list = gst_buffer_list_make_writable (buffer_list);
+    for (i = 0; i < gst_buffer_list_length (buffer_list); i++) {
+      buffer = gst_buffer_list_get (buffer_list, i);
+      gst_rtp_src_attach_net_address_meta (self, buffer);
+    }
+  } else {
+    GstBuffer *buffer = info->data;
+    info->data = buffer = gst_buffer_make_writable (buffer);
+    gst_rtp_src_attach_net_address_meta (self, buffer);
+  }
+
+  return GST_PAD_PROBE_OK;
+}
+
 static gboolean
 gst_rtp_src_setup_elements (GstRtpSrc * self)
 {
-  /*GstPad *pad; */
+  GstPad *pad;
   GSocket *socket;
   GInetAddress *addr;
   gchar name[48];
   GstCaps *caps;
+  gchar* address;
+  guint rtcp_port;
+
+  /* Construct the RTP receiver pipeline.
+   *
+   * udpsrc -> [recv_rtp_sink_%u]  --------  [recv_rtp_src_%u_%u_%u]
+   *                              | rtpbin |
+   * udpsrc -> [recv_rtcp_sink_%u] --------  [send_rtcp_src_%u] -> udpsink
+   *
+   * This pipeline is fixed for now, note that optionally an FEC stream could
+   * be added later.
+   */
 
   /* Should not be NULL */
   g_return_val_if_fail (self->uri != NULL, FALSE);
@@ -446,24 +522,24 @@ gst_rtp_src_setup_elements (GstRtpSrc * self)
     return FALSE;
   }
 
-  self->udpsrc_rtp = gst_element_factory_make ("udpsrc", NULL);
-  if (self->udpsrc_rtp == NULL) {
+  self->rtp_src = gst_element_factory_make ("udpsrc", NULL);
+  if (self->rtp_src == NULL) {
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
-        ("%s", "udpsrc_rtp element is not available"));
+        ("%s", "rtp_src element is not available"));
     return FALSE;
   }
 
-  self->udpsrc_rtcp = gst_element_factory_make ("udpsrc", NULL);
-  if (self->udpsrc_rtcp == NULL) {
+  self->rtcp_src = gst_element_factory_make ("udpsrc", NULL);
+  if (self->rtcp_src == NULL) {
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
-        ("%s", "udpsrc_rtcp element is not available"));
+        ("%s", "rtcp_src element is not available"));
     return FALSE;
   }
 
-  self->udpsink_rtcp = gst_element_factory_make ("udpsink", NULL);
-  if (self->udpsink_rtcp == NULL) {
+  self->rtcp_sink = gst_element_factory_make ("dynudpsink", NULL);
+  if (self->rtcp_sink == NULL) {
     GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
-        ("%s", "udpsink_rtcp element is not available"));
+        ("%s", "rtcp_sink element is not available"));
     return FALSE;
   }
 
@@ -486,57 +562,101 @@ gst_rtp_src_setup_elements (GstRtpSrc * self)
   /* Add elements as needed, since udpsrc/udpsink for RTCP share a socket,
    * not all at the same moment */
   gst_bin_add (GST_BIN (self), self->rtpbin);
-  gst_bin_add (GST_BIN (self), self->udpsrc_rtp);
+  gst_bin_add (GST_BIN (self), self->rtp_src);
 
-  g_object_set (self->udpsrc_rtp,
+  g_object_set (self->rtp_src,
       "address", gst_uri_get_host (self->uri),
       "port", gst_uri_get_port (self->uri), NULL);
 
-  gst_bin_add (GST_BIN (self), self->udpsink_rtcp);
+  gst_bin_add (GST_BIN (self), self->rtcp_sink);
 
   /* no need to set address if unicast */
   caps = gst_caps_new_empty_simple ("application/x-rtcp");
-  g_object_set (self->udpsrc_rtcp,
+  g_object_set (self->rtcp_src,
       "port", gst_uri_get_port (self->uri) + 1, "caps", caps, NULL);
   gst_caps_unref (caps);
 
   addr = g_inet_address_new_from_string (gst_uri_get_host (self->uri));
   if (g_inet_address_get_is_multicast (addr)) {
-    g_object_set (self->udpsrc_rtcp, "address", gst_uri_get_host (self->uri),
+    g_object_set (self->rtcp_src, "address", gst_uri_get_host (self->uri),
         NULL);
   }
   g_object_unref (addr);
 
-  g_object_set (self->udpsink_rtcp,
+  g_object_set (self->rtcp_sink,
       "host", gst_uri_get_host (self->uri),
       "port", gst_uri_get_port (self->uri) + 1,
       "ttl", self->ttl, "ttl-mc", self->ttl_mc,
       /* Set false since we're reusing a socket */
       "auto-multicast", FALSE, NULL);
 
-  gst_bin_add (GST_BIN (self), self->udpsrc_rtcp);
+  gst_bin_add (GST_BIN (self), self->rtcp_src);
 
   /* share the socket created by the source */
-  g_object_get (G_OBJECT (self->udpsrc_rtcp), "used-socket", &socket, NULL);
-  g_object_set (G_OBJECT (self->udpsink_rtcp), "socket", socket, NULL);
+  g_object_get (G_OBJECT (self->rtcp_src), "used-socket", &socket,
+      "address", &address, "port", &rtcp_port, NULL);
+
+  addr = g_inet_address_new_from_string (address);
+  g_free (address);
+
+  if (g_inet_address_get_is_multicast (addr)) {
+    /* mc-ttl is not supported by dynudpsink */
+    g_socket_set_multicast_ttl (socket, self->ttl);
+    /* In multicast, send RTCP to the multicast group */
+    self->rtcp_send_addr = g_inet_socket_address_new (addr, rtcp_port);
+  } else {
+    /* In unicast, send RTCP to the detected sender address */
+    pad = gst_element_get_static_pad (self->rtcp_src, "src");
+    self->rtcp_recv_probe = gst_pad_add_probe (pad,
+        GST_PAD_PROBE_TYPE_BUFFER | GST_PAD_PROBE_TYPE_BUFFER_LIST,
+        gst_rtp_src_on_recv_rtcp, self, NULL);
+    gst_object_unref (pad);
+  }
+  g_object_unref (addr);
+
+  pad = gst_element_get_static_pad (self->rtcp_sink, "sink");
+  self->rtcp_send_probe = gst_pad_add_probe (pad,
+      GST_PAD_PROBE_TYPE_BUFFER | GST_PAD_PROBE_TYPE_BUFFER_LIST,
+      gst_rtp_src_on_send_rtcp, self, NULL);
+  gst_object_unref (pad);
+
+  g_object_set (G_OBJECT (self->rtcp_sink), "socket", socket, NULL);
 
   /* pads are all named */
   g_snprintf (name, 48, "recv_rtp_sink_%u", GST_ELEMENT (self)->numpads);
-  gst_element_link_pads (self->udpsrc_rtp, "src", self->rtpbin, name);
+  gst_element_link_pads (self->rtp_src, "src", self->rtpbin, name);
 
   g_snprintf (name, 48, "recv_rtcp_sink_%u", GST_ELEMENT (self)->numpads);
-  gst_element_link_pads (self->udpsrc_rtcp, "src", self->rtpbin, name);
+  gst_element_link_pads (self->rtcp_src, "src", self->rtpbin, name);
 
   gst_element_sync_state_with_parent (self->rtpbin);
-  gst_element_sync_state_with_parent (self->udpsrc_rtp);
-  gst_element_sync_state_with_parent (self->udpsink_rtcp);
+  gst_element_sync_state_with_parent (self->rtp_src);
+  gst_element_sync_state_with_parent (self->rtcp_sink);
 
   g_snprintf (name, 48, "send_rtcp_src_%u", GST_ELEMENT (self)->numpads);
-  gst_element_link_pads (self->rtpbin, name, self->udpsink_rtcp, "sink");
+  gst_element_link_pads (self->rtpbin, name, self->rtcp_sink, "sink");
 
-  gst_element_sync_state_with_parent (self->udpsrc_rtcp);
+  gst_element_sync_state_with_parent (self->rtcp_src);
 
   return TRUE;
+}
+
+static void
+gst_rtp_src_stop (GstRtpSrc * self)
+{
+  GstPad *pad;
+
+  if (self->rtcp_recv_probe) {
+    pad = gst_element_get_static_pad (self->rtcp_src, "src");
+    gst_pad_remove_probe (pad, self->rtcp_recv_probe);
+    self->rtcp_recv_probe = 0;
+    gst_object_unref (pad);
+  }
+
+  pad = gst_element_get_static_pad (self->rtcp_sink, "sink");
+  gst_pad_remove_probe (pad, self->rtcp_send_probe);
+  self->rtcp_send_probe = 0;
+  gst_object_unref (pad);
 }
 
 static GstStateChangeReturn
@@ -569,6 +689,9 @@ gst_rtp_src_change_state (GstElement * element, GstStateChange transition)
     case GST_STATE_CHANGE_PLAYING_TO_PAUSED:
       ret = GST_STATE_CHANGE_NO_PREROLL;
       break;
+    case GST_STATE_CHANGE_READY_TO_NULL:
+      gst_rtp_src_stop (self);
+      break;
     default:
       break;
   }
@@ -580,9 +703,9 @@ static void
 gst_rtp_src_init (GstRtpSrc * self)
 {
   self->rtpbin = NULL;
-  self->udpsrc_rtp = NULL;
-  self->udpsrc_rtcp = NULL;
-  self->udpsink_rtcp = NULL;
+  self->rtp_src = NULL;
+  self->rtcp_src = NULL;
+  self->rtcp_sink = NULL;
 
   self->uri = gst_uri_from_string (DEFAULT_PROP_URI);
   self->ttl = DEFAULT_PROP_TTL;

@@ -65,9 +65,9 @@ struct _GstRtpSink
   GstElement *rtpbin;
   GstElement *funnel_rtp;
   GstElement *funnel_rtcp;
-  GstElement *udpsink_rtp;
-  GstElement *udpsrc_rtcp;
-  GstElement *udpsink_rtcp;
+  GstElement *rtp_sink;
+  GstElement *rtcp_src;
+  GstElement *rtcp_sink;
 
   GMutex lock;
 };
@@ -204,24 +204,24 @@ gst_rtp_sink_setup_elements (GstRtpSink * self)
       return FALSE;
     }
 
-    self->udpsink_rtp = gst_element_factory_make ("udpsink", NULL);
-    if (self->udpsink_rtp == NULL) {
+    self->rtp_sink = gst_element_factory_make ("udpsink", NULL);
+    if (self->rtp_sink == NULL) {
       GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
-          ("%s", "udpsink_rtp element is not available"));
+          ("%s", "rtp_sink element is not available"));
       return FALSE;
     }
 
-    self->udpsrc_rtcp = gst_element_factory_make ("udpsrc", NULL);
-    if (self->udpsrc_rtcp == NULL) {
+    self->rtcp_src = gst_element_factory_make ("udpsrc", NULL);
+    if (self->rtcp_src == NULL) {
       GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
-          ("%s", "udpsrc_rtcp element is not available"));
+          ("%s", "rtcp_src element is not available"));
       return FALSE;
     }
 
-    self->udpsink_rtcp = gst_element_factory_make ("udpsink", NULL);
-    if (self->udpsink_rtcp == NULL) {
+    self->rtcp_sink = gst_element_factory_make ("udpsink", NULL);
+    if (self->rtcp_sink == NULL) {
       GST_ELEMENT_ERROR (self, CORE, MISSING_PLUGIN, (NULL),
-          ("%s", "udpsink_rtcp element is not available"));
+          ("%s", "rtcp_sink element is not available"));
       return FALSE;
     }
 
@@ -230,49 +230,49 @@ gst_rtp_sink_setup_elements (GstRtpSink * self)
 
     /* Add elements as needed, since udpsrc/udpsink for RTCP share a socket,
      * not all at the same moment */
-    g_object_set (self->udpsink_rtp,
+    g_object_set (self->rtp_sink,
         "host", gst_uri_get_host (self->uri),
         "port", gst_uri_get_port (self->uri),
         "ttl", self->ttl, "ttl-mc", self->ttl_mc, NULL);
 
-    gst_bin_add (GST_BIN (self), self->udpsink_rtp);
+    gst_bin_add (GST_BIN (self), self->rtp_sink);
 
-    g_object_set (self->udpsink_rtcp,
+    g_object_set (self->rtcp_sink,
         "host", gst_uri_get_host (self->uri),
         "port", gst_uri_get_port (self->uri) + 1,
         "ttl", self->ttl, "ttl-mc", self->ttl_mc,
         /* Set false since we're reusing a socket */
         "auto-multicast", FALSE, NULL);
 
-    gst_bin_add (GST_BIN (self), self->udpsink_rtcp);
+    gst_bin_add (GST_BIN (self), self->rtcp_sink);
 
     /* no need to set address if unicast */
     caps = gst_caps_new_empty_simple ("application/x-rtcp");
-    g_object_set (self->udpsrc_rtcp,
+    g_object_set (self->rtcp_src,
         "port", gst_uri_get_port (self->uri) + 1, "caps", caps, NULL);
     gst_caps_unref (caps);
 
     addr = g_inet_address_new_from_string (gst_uri_get_host (self->uri));
     if (g_inet_address_get_is_multicast (addr)) {
-      g_object_set (self->udpsrc_rtcp, "address", gst_uri_get_host (self->uri),
+      g_object_set (self->rtcp_src, "address", gst_uri_get_host (self->uri),
           NULL);
     }
     g_object_unref (addr);
 
-    gst_bin_add (GST_BIN (self), self->udpsrc_rtcp);
+    gst_bin_add (GST_BIN (self), self->rtcp_src);
 
-    gst_element_link (self->funnel_rtp, self->udpsink_rtp);
-    gst_element_link (self->funnel_rtcp, self->udpsink_rtcp);
+    gst_element_link (self->funnel_rtp, self->rtp_sink);
+    gst_element_link (self->funnel_rtcp, self->rtcp_sink);
 
     gst_element_sync_state_with_parent (self->funnel_rtp);
     gst_element_sync_state_with_parent (self->funnel_rtcp);
-    gst_element_sync_state_with_parent (self->udpsink_rtp);
-    gst_element_sync_state_with_parent (self->udpsrc_rtcp);
+    gst_element_sync_state_with_parent (self->rtp_sink);
+    gst_element_sync_state_with_parent (self->rtcp_src);
 
-    g_object_get (G_OBJECT (self->udpsrc_rtcp), "used-socket", &socket, NULL);
-    g_object_set (G_OBJECT (self->udpsink_rtcp), "socket", socket, NULL);
+    g_object_get (G_OBJECT (self->rtcp_src), "used-socket", &socket, NULL);
+    g_object_set (G_OBJECT (self->rtcp_sink), "socket", socket, NULL);
 
-    gst_element_sync_state_with_parent (self->udpsink_rtcp);
+    gst_element_sync_state_with_parent (self->rtcp_sink);
 
   }
 
@@ -284,7 +284,7 @@ gst_rtp_sink_setup_elements (GstRtpSink * self)
   gst_element_link_pads (self->rtpbin, name, self->funnel_rtcp, "sink_%u");
 
   g_snprintf (name, 48, "recv_rtcp_sink_%u", GST_ELEMENT (self)->numpads);
-  gst_element_link_pads (self->udpsrc_rtcp, "src", self->rtpbin, name);
+  gst_element_link_pads (self->rtcp_src, "src", self->rtpbin, name);
 
   return TRUE;
 }
@@ -531,9 +531,9 @@ gst_rtp_sink_init (GstRtpSink * self)
   self->rtpbin = NULL;
   self->funnel_rtp = NULL;
   self->funnel_rtcp = NULL;
-  self->udpsink_rtp = NULL;
-  self->udpsrc_rtcp = NULL;
-  self->udpsink_rtcp = NULL;
+  self->rtp_sink = NULL;
+  self->rtcp_src = NULL;
+  self->rtcp_sink = NULL;
 
   self->uri = gst_uri_from_string (DEFAULT_PROP_URI);
   self->ttl = DEFAULT_PROP_TTL;
