@@ -160,7 +160,7 @@ gst_rtp_src_rtpbin_request_pt_map_cb (GstElement * rtpbin, guint session_id,
     return ret;
   }
 
-  GST_DEBUG_OBJECT (self, "Could not determine caps based on pt and"
+  GST_WARNING_OBJECT (self, "Could not determine caps based on pt and"
       " the encoding-name was not set.");
   return NULL;
 }
