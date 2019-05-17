@@ -71,10 +71,10 @@ struct _GstRtpSrc
   guint latency_ms;
 
   /* Internal elements */
-  GstElement *rtpbin;
   GstElement *rtp_src;
   GstElement *rtcp_src;
   GstElement *rtcp_sink;
+  GstElement *rtpbin;
 
   gulong rtcp_recv_probe;
   gulong rtcp_send_probe;
@@ -142,7 +142,6 @@ gst_rtp_src_rtpbin_request_pt_map_cb (GstElement * rtpbin, guint session_id,
     p = gst_rtp_payload_info_for_name ("video", self->encoding_name);
     if (p == NULL)
       p = gst_rtp_payload_info_for_name ("audio", self->encoding_name);
-
   }
 
   /* Static payload types, this is a simple lookup */
