@@ -250,7 +250,7 @@ gst_rtp_src_finalize (GObject * gobject)
   if (self->uri)
     gst_uri_unref (self->uri);
 
-  g_free (src->encoding_name);
+  g_free (self->encoding_name);
 
   g_mutex_clear (&self->lock);
   G_OBJECT_CLASS (parent_class)->finalize (gobject);
