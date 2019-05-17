@@ -602,7 +602,7 @@ gst_rtp_src_setup_elements (GstRtpSrc * self)
 
   if (g_inet_address_get_is_multicast (addr)) {
     /* mc-ttl is not supported by dynudpsink */
-    g_socket_set_multicast_ttl (socket, self->ttl);
+    g_socket_set_multicast_ttl (socket, self->ttl_mc);
     /* In multicast, send RTCP to the multicast group */
     self->rtcp_send_addr = g_inet_socket_address_new (addr, rtcp_port);
   } else {
