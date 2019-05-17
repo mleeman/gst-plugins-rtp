@@ -1,3 +1,64 @@
+gst-plugins-rtp (1.14.4.2) unstable; urgency=medium
+
+  * meson: correct package name description
+  * debian: add watch file
+  * debian: adjust Source in copyright
+  * rtp: add namespace
+  * rtp: add guards for Windows compilation
+  * rtpsink: remove unused var
+  * rtp: description should use RTP
+  * gst: register correct rtp names
+  * rtp: use GstElement numpads
+  * rtp: improve description
+  * rtpsink: sync description with rtpsrc
+  * rtpmanagerbad: use gst_bin_set_suppressed_flags
+  * rtpsink: wrap line/indent
+  * rtp: use gsocket code to test multicast
+  * rtp: improved object testing after creation
+  * rtpmanagerbad: use gst_caps_new_empty_simple iso gst_caps_from_string
+  * rtpmanagerbad: sync with gstrtppayloads.h
+  * rtpmanagerbad: correct media type X-GST
+  * whitespace
+  * rtpsink: check if a compatible pad was found
+  * rtpsink: indenting
+  * rtp: remove own version of GstRTPPayloadInfo
+  * meson: add gio_dep
+  * all: improve namespace to nrtp_
+  * debian: whitespace
+  * rtpsrc: correct stage change returns for live sources
+  * rtpsrc: print caps decision
+  * rtpsink: remove commented code
+  * rtpsrc: simplify state changes
+  * rtpsink: do not reconfigure udp if already done
+  * rtpsink: simply getting request pads rtpbin
+  * rtpsink: remove brackets that are not needed
+  * rtpsrc: use GstElement counter
+  * rtpsink: allow sending multiple streams on one socket
+  * rtpsrc: gst-indent
+  * rtpsink: indenting corrected
+  * rtpsrc: avoid beaches
+  * rtp: rename helper file to match bad plugins
+  * rtp: improve description in comments
+  * rtp: merge debug init in template
+  * rtp: add locking when setting uri
+  * rtp: improve input validation
+  * rtp: use small buffers on stack
+  * rtp: line wrapper on setters
+  * rtp: improve URI description
+  * rtp: line wrap
+  * rtp: do not assume encoding-name
+  * rtp: g_free is NULL safe
+  * rtp: correct message setter
+  * rtp: return NULL when no rtpbin
+  * rtpsrc/rtpsink: correct for RTCP through NAT
+  * rtpsrc: minor whitespace changes
+  * rtpsrc: raise warning when no caps are found
+  * rtpsrc: free encoding_name in finalize
+  * rtpsrc: use ttl_mc for multicast
+  * rtpsrc: correct self name
+
+ -- Marc Leeman <marc.leeman@barco.com>  Fri, 17 May 2019 13:09:15 +0200
+
 gst-plugins-rtp (1.14.4.1) unstable; urgency=medium
 
   * initial release (Closes: #920016)
