@@ -1,5 +1,5 @@
-#ifndef __GST_OBJECT_SET_PROPERTIES_FROM_URI_QUERY_H__
-#define __GST_OBJECT_SET_PROPERTIES_FROM_URI_QUERY_H__
+#ifndef __GST_RTP_UTILS_H__
+#define __GST_RTP_UTILS_H__
 
 #include <gst/gst.h>
 
