@@ -110,11 +110,17 @@ gst_rtp_sink_set_property (GObject * object, guint prop_id,
   GstRtpSink *self = GST_RTP_SINK (object);
 
   switch (prop_id) {
-    case PROP_URI:
+    case PROP_URI: {
+      GstUri *uri = NULL;
+
       GST_RTP_SINK_LOCK (object);
+      uri = gst_uri_from_string (g_value_get_string (value));
+      if (uri == NULL)
+        break;
+
       if (self->uri)
         gst_uri_unref (self->uri);
-      self->uri = gst_uri_from_string (g_value_get_string (value));
+      self->uri = uri;
       /* RTP data ports should be even according to RFC 3550, while the
        * RTCP is sent on odd ports. Just warn if there is a mismatch. */
       if (gst_uri_get_port (self->uri) % 2)
@@ -125,6 +131,7 @@ gst_rtp_sink_set_property (GObject * object, guint prop_id,
       gst_rtp_utils_set_properties_from_uri_query (G_OBJECT (self), self->uri);
       GST_RTP_SINK_UNLOCK (object);
       break;
+    }
     case PROP_TTL:
       self->ttl = g_value_get_int (value);
       break;

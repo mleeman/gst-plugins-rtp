@@ -173,11 +173,17 @@ gst_rtp_src_set_property (GObject * object, guint prop_id,
   GstCaps *caps;
 
   switch (prop_id) {
-    case PROP_URI:
+    case PROP_URI:{
+      GstUri *uri = NULL;
+
       GST_RTP_SRC_LOCK (object);
+      uri = gst_uri_from_string (g_value_get_string (value));
+      if (uri == NULL)
+        break;
+
       if (self->uri)
         gst_uri_unref (self->uri);
-      self->uri = gst_uri_from_string (g_value_get_string (value));
+      self->uri = uri;
       if (gst_uri_get_port (self->uri) % 2)
         GST_WARNING_OBJECT (self,
             "Port %u is not even, this is not standard (see RFC 3550).",
@@ -185,6 +191,7 @@ gst_rtp_src_set_property (GObject * object, guint prop_id,
       gst_rtp_utils_set_properties_from_uri_query (G_OBJECT (self), self->uri);
       GST_RTP_SRC_UNLOCK (object);
       break;
+    }
     case PROP_TTL:
       self->ttl = g_value_get_int (value);
       break;
@@ -249,7 +256,6 @@ gst_rtp_src_finalize (GObject * gobject)
 
   if (self->uri)
     gst_uri_unref (self->uri);
-
   g_free (self->encoding_name);
 
   g_mutex_clear (&self->lock);
