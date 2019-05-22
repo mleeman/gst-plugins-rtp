@@ -11,7 +11,7 @@ GST_START_TEST (test_uri_to_properties)
   /* Sets properties to non-default values (make sure this stays in sync) */
   g_object_set (rtpsink,
       "uri", "rtp://1.230.1.2?"
-      "&ttl=8"
+      "ttl=8"
       "&ttl-mc=9", NULL);
 
   g_object_get (rtpsink,

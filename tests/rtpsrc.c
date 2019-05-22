@@ -9,7 +9,7 @@ GST_START_TEST (test_uri_to_properties)
 
   /* Sets properties to non-default values (make sure this stays in sync) */
   g_object_set (rtpsrc, "uri", "rtp://1.230.1.2?"
-      "&latency=300"
+      "latency=300"
       "&ttl=8"
       "&ttl-mc=9", NULL);
 
