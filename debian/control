@@ -16,6 +16,7 @@ Depends: gstreamer1.0-plugins-base,
          gstreamer1.0-plugins-good,
          ${misc:Depends},
          ${shlibs:Depends}
+Conflicts: gstreamer1.0-plugins-bad ( >= 1.18.0 )
 Description: GStreamer elements from the "rtp" set
  GStreamer is a streaming media framework, based on graphs of filters
  which operate on media data.  Applications using this library can do
