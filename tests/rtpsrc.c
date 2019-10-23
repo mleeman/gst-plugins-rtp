@@ -31,9 +31,7 @@ GST_START_TEST (test_uri_to_properties)
       "latency=300" "&ttl=8" "&ttl-mc=9", NULL);
 
   g_object_get (rtpsrc,
-      "latency", &latency,
-      "ttl-mc", &ttl_mc,
-      "ttl", &ttl, NULL);
+      "latency", &latency, "ttl-mc", &ttl_mc, "ttl", &ttl, NULL);
 
   /* Make sure these values are in sync with the one from the URI. */
   g_assert_cmpuint (latency, ==, 300);
@@ -42,6 +40,7 @@ GST_START_TEST (test_uri_to_properties)
 
   gst_object_unref (rtpsrc);
 }
+
 GST_END_TEST;
 
 static Suite *
