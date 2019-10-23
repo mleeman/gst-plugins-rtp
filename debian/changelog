@@ -1,3 +1,18 @@
+gst-plugins-rtp (1.16.1.1) unstable; urgency=medium
+
+  * rtpmanagerbad: correct macro after file rename
+  * rtpmanagerbad: code style
+  * rtpmanagerbad: correct URI notation
+  * rtpmanagerbad: handle wrong URIs in setter
+  * tests: add licence boilerplate
+  * tests: correct test by specifying mandatory port
+  * tests: indenting
+  * gst: sync with gst-plugins-bad copy of the modules.
+  * debian: bump standards version
+  * debian: introduce a conflicts for a future gstreamer1.0-plugins-bad release
+
+ -- Marc Leeman <marc.leeman@gmail.com>  Wed, 23 Oct 2019 10:25:21 +0200
+
 gst-plugins-rtp (1.14.4.2) unstable; urgency=medium
 
   * meson: correct package name description
@@ -57,7 +72,7 @@ gst-plugins-rtp (1.14.4.2) unstable; urgency=medium
   * rtpsrc: use ttl_mc for multicast
   * rtpsrc: correct self name
 
- -- Marc Leeman <marc.leeman@barco.com>  Fri, 17 May 2019 13:09:15 +0200
+ -- Marc Leeman <marc.leeman@gmail.com>  Fri, 17 May 2019 13:09:15 +0200
 
 gst-plugins-rtp (1.14.4.1) unstable; urgency=medium
 
