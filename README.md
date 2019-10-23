@@ -9,6 +9,8 @@ https://bugzilla.gnome.org/show_bug.cgi?id=703111
 The nrtp_rtpsink and nrtp_rtpsrc elements add an URI interface so that streams
 can be decoded with decodebin using the rtp:// interface.
 
+NOTE: these modules will be part of a GStreamer bad plugins >= 1.18.0.
+
 The code can be used as follows
 
 ```
